@@ -88,10 +88,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/profit', [DashboardController::class, 'profit'])->name('dwh.profit');
         Route::get('/cabang', [DashboardController::class, 'cabang'])->name('dwh.cabang');
         Route::get('/etl-report', [DashboardController::class, 'etlReport'])->name('dwh.etl-report');
+        
+        // ⚡ DI SINI PERUBAHANNYA: Mengarahkan tombol AJAX Fetch Dashboard menuju aksi runEtl di DashboardController
+        Route::post('/run-etl', [DashboardController::class, 'runEtl'])->name('dwh.run-etl');
     });
 
-    // 🚪 Tombol Keluar Sistem Resmi (Menggunakan LoginController POST)
-    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    // 🚪 Tombol Keluar Sistem Resmi (DIUBAH MENJADI MATCH GET & POST)
+    Route::match(['get', 'post'], '/logout', [LoginController::class, 'logout'])->name('logout');
 });
 
 

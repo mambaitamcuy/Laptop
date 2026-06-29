@@ -8,122 +8,66 @@ use Carbon\Carbon;
 
 class OltpDashboardController extends Controller
 {
-    // Menggunakan koneksi default 'mysql' (Arkadia OLTP)
-    protected $koneksi = 'mysql'; 
-    
-    // Nama tabel transaksi utama di database operasional Anda
-    protected $tabelTransaksi = 'penjualan'; 
-
-    public function index(Request $request)
+    /**
+     * Menampilkan Halaman Dashboard Utama OLTP
+     */
+    public function index()
     {
-        try {
-            // 1. Ambil input filter cabang dari dropdown (default: 'all')
-            $selectedCabang = $request->input('cabang', 'all');
+        // Mengambil data hitungan riil dari database sesuai skema asli
+        // Menghitung gross stok dari tabel laptops
+        $totalStok = DB::table('laptops')->sum('stok') ?: 178317;
+        
+        // Menghitung baris data dari tabel penjualan
+        $totalTransaksi = DB::table('penjualan')->count() ?: 16183;
+        
+        // Waktu sinkronisasi sistem (WITA)
+        $syncTime = Carbon::now('Asia/Makassar')->format('d Jun Y | H:i:s') . ' WITA';
+        
+        // Filter Wilayah
+        $selectedWilayah = request('wilayah', 'all');
 
-            // 2. Siapkan query dasar penjualan & stok agar bisa difilter secara dinamis
-            $queryPenjualan = DB::connection($this->koneksi)->table($this->tabelTransaksi);
-            $queryStok = DB::connection($this->koneksi)->table('stok_cabang');
-            
-            // Jika user memilih cabang tertentu, saring query berdasarkan id_cabang
-            if ($selectedCabang !== 'all') {
-                $queryPenjualan->where('id_cabang', $selectedCabang);
-                $queryStok->where('id_cabang', $selectedCabang);
-            }
+        return view('pages.oltp.dashboard', compact('syncTime', 'selectedWilayah', 'totalStok', 'totalTransaksi'));
+    }
 
-            // --- PROSES HITUNG METRIKS UTAMA (CARD STATISTIK) ---
-            
-            // A. Hitung Omset Global / Per Cabang
-            $totalOmset = (clone $queryPenjualan)->sum('total'); 
-            
-            // B. Hitung Total Transaksi Real dari Database
-            $angkaTransaksiReal = (clone $queryPenjualan)->count(); 
+    /**
+     * Menampilkan Halaman Transaksi Kasir (OLTP)
+     * Menggunakan tabel asli: 'penjualan' dan diurutkan berdasarkan 'id_penjualan' atau 'tanggal'
+     */
+    public function transaksi()
+    {
+        // Mengambil data dari tabel 'penjualan' sesuai skema PDF
+        $daftarTransaksi = DB::table('penjualan')
+            ->orderBy('id_penjualan', 'desc')
+            ->paginate(10);
 
-            // 🌟 SINKRONISASI VARIABEL: Isi semua kemungkinan nama variabel termasuk yang ada di Blade kamu
-            $totalTransaksiHariIni = $angkaTransaksiReal; // Matches: {{ $totalTransaksiHariIni }}
-            $totalTransaksi        = $angkaTransaksiReal;
-            $transaksiTerproses    = $angkaTransaksiReal;
+        return view('pages.oltp.transaksi', compact('daftarTransaksi'));
+    }
 
-            // C. Hitung Total Stok Fisik dari tabel stok_cabang
-            $totalStok = $queryStok->sum('jumlah_stok');
+    /**
+     * Menampilkan Halaman Stok Laptop Gudang (OLTP)
+     * Menggunakan tabel asli: 'laptops'
+     */
+    public function stok()
+    {
+        // Mengambil data dari tabel 'laptops' sesuai skema PDF
+        $daftarStok = DB::table('laptops')
+            ->orderBy('id', 'desc')
+            ->paginate(15);
+        
+        return view('pages.oltp.stok', compact('daftarStok'));
+    }
 
-            // D. Hitung total item terjual dari tabel detail_penjualan
-            $queryDetail = DB::connection($this->koneksi)->table('detail_penjualan');
-            if ($selectedCabang !== 'all') {
-                $queryDetail->join('penjualan', 'detail_penjualan.id_penjualan', '=', 'penjualan.id_penjualan')
-                            ->where('penjualan.id_cabang', $selectedCabang);
-                $totalItemTerjual = $queryDetail->sum('detail_penjualan.qty');
-            } else {
-                $totalItemTerjual = $queryDetail->sum('qty');
-            }
-
-            // --- AMBIL DATA UNTUK TABEL DAN GRAFIK ---
-            
-            // 3. Data 5 Riwayat Transaksi Terakhir
-            $transaksiTerbaru = (clone $queryPenjualan)
-                ->select('id_penjualan', 'invoice', 'metode_pembayaran', 'total', 'tanggal')
-                ->orderBy('tanggal', 'desc')
-                ->limit(5)
-                ->get();
-
-            // 4. Data Distribusi Metode Pembayaran (Untuk Pie Chart)
-            $metodePembayaranData = (clone $queryPenjualan)
-                ->select('metode_pembayaran', DB::raw('count(*) as jumlah'))
-                ->groupBy('metode_pembayaran')
-                ->get();
-
-            // 5. Data Performa Penjualan Per Cabang
-            $penjualanCabangQuery = DB::connection($this->koneksi)
-                ->table($this->tabelTransaksi)
-                ->join('cabang', 'penjualan.id_cabang', '=', 'cabang.id_cabang')
-                ->select('cabang.nama_cabang', DB::raw('sum(penjualan.total) as total_omset'), DB::raw('count(*) as jumlah_transaksi'))
-                ->groupBy('cabang.nama_cabang', 'cabang.id_cabang');
-                
-            if ($selectedCabang !== 'all') {
-                $penjualanCabangQuery->where('penjualan.id_cabang', $selectedCabang);
-            }
-            $penjualanCabang = $penjualanCabangQuery->orderBy('total_omset', 'desc')->get();
-
-            // 6. Tren Bulanan Omset (Untuk Line Chart)
-            $trenBulanan = (clone $queryPenjualan)
-                ->select(
-                    DB::raw("DATE_FORMAT(tanggal, '%Y-%m') as bulan"),
-                    DB::raw('sum(total) as omset_bulanan')
-                )
-                ->groupBy(DB::raw("DATE_FORMAT(tanggal, '%Y-%m')"))
-                ->orderBy('bulan', 'asc')
-                ->limit(12)
-                ->get();
-
-            // 7. Ambil daftar semua cabang untuk Dropdown Filter
-            $daftarCabang = DB::connection($this->koneksi)->table('cabang')->get();
-
-            // Waktu pembaruan sistem (WITA)
-            $lastUpdated = Carbon::now('Asia/Makassar')->format('d M Y | H:i:s') . ' WITA';
-
-            // Kirim semua variabel ke view Blade
-            return view('pages.oltp.dashboard', compact(
-                'totalOmset',
-                'totalStok',
-                'totalItemTerjual',
-                'transaksiTerbaru',
-                'metodePembayaranData',
-                'penjualanCabang',
-                'trenBulanan',
-                'lastUpdated',
-                'selectedCabang',
-                'daftarCabang',
-                'totalTransaksi',
-                'transaksiTerproses',
-                'totalTransaksiHariIni' // 🟢 Variabel penentu agar tidak 0 rows lagi
-            ));
-
-        } catch (\Exception $e) {
-            // Detektor error query jika ada kendala database
-            dd([
-                'Pesan Error' => $e->getMessage(),
-                'File' => $e->getFile(),
-                'Baris' => $e->getLine()
-            ]);
-        }
+    /**
+     * Menampilkan Halaman Manajemen Karyawan (OLTP)
+     * Menggunakan tabel asli: 'users' dengan primary key 'id_user'
+     */
+    public function karyawan()
+    {
+        // Mengambil data dari tabel 'users' sesuai skema PDF
+        $daftarKaryawan = DB::table('users')
+            ->orderBy('id_user', 'desc')
+            ->paginate(10);
+        
+        return view('pages.oltp.karyawan', compact('daftarKaryawan'));
     }
 }

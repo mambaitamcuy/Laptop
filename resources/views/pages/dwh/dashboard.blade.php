@@ -145,27 +145,62 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // FUNGSI UTAMA UNTUK MENJALANKAN PIPELINE ETL ASLI
     function prosesPipaEtl() {
         const btn = document.getElementById('btn-etl');
         const text = document.getElementById('etl-text');
         
+        // Kunci tombol agar tidak diklik berkali-kali (anti double submission)
         btn.disabled = true;
         btn.style.background = '#f59e0b';
         btn.style.color = '#0b1329';
         text.innerText = "ETL Sedang Berjalan...";
         
-        alert("ETL sedang berjalan!\nSistem sedang menarik data transaksi harian dari database 'arkadialp_oltp' dan menyuntikkannya ke gudang data 'arkadialp_dwh'.");
-        
-        setTimeout(() => {
-            alert("Sinkronisasi Berhasil!\nSemua data terbaru harian toko sukses di-load ke Dashboard DWH & Operasional!");
-            window.location.reload();
-        }, 1500);
+        // Menggunakan Fetch API untuk mengirim request POST ke backend Laravel secara realtime
+        fetch("{{ route('dwh.run-etl') }}", {
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Gagal berkomunikasi dengan server backend.');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                alert("Sinkronisasi Berhasil!\n" + data.message);
+                window.location.reload(); // Refresh halaman untuk merender ulang chart terbaru
+            } else {
+                alert("ETL Gagal: " + data.message);
+                resetTombolEtl();
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Terjadi kesalahan sistem atau jaringan saat memproses pipa ETL.");
+            resetTombolEtl();
+        });
     }
 
+    // Fungsi untuk mengembalikan tampilan tombol jika proses ETL gagal
+    function resetTombolEtl() {
+        const btn = document.getElementById('btn-etl');
+        const text = document.getElementById('etl-text');
+        btn.disabled = false;
+        btn.style.background = '#06b6d4';
+        btn.style.color = '#0b1329';
+        text.innerText = "Jalankan Pipa ETL";
+    }
+
+    // PROSES RENEDERING CHART.JS
     document.addEventListener("DOMContentLoaded", function() {
         const ctx = document.getElementById('profitTrendChart').getContext('2d');
         
-        // Membaca array data asli harian dari Controller
         const labelsData = {!! json_encode($chartLabels) !!};
         const valuesData = {!! json_encode($chartValues) !!};
 
