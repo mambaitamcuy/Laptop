@@ -1,77 +1,104 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4 py-4" style="background-color: #0b1329; min-height: 100vh; color: #f8fafc;">
+<div class="p-4 p-md-5">
     
-    <!-- HEADER HALAMAN -->
     <div class="d-flex align-items-center mb-4">
-        <div class="p-3 mr-3 shadow-sm" style="background: #1c2541; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
-            <i class="fas fa-file-invoice-dollar text-success" style="font-size: 18px;"></i>
+        <div class="rounded-circle d-flex align-items-center justify-content-center" 
+             style="width: 50px; height: 50px; background-color: #1c2541; border: 1px solid #334155;">
+            <i class="fas fa-table text-info" style="font-size: 18px;"></i>
         </div>
-        <div>
-            <h4 class="font-weight-bold text-white m-0" style="letter-spacing: 0.5px; font-size: 22px;">Tabel Fakta Penjualan & Profit (DWH)</h4>
-            <small class="text-muted" style="font-size: 13px;">Struktur internal tabel `dwh_fact_penjualan` setelah transformasi pipa ETL untuk kebutuhan OLAP</small>
+        <div class="ml-3">
+            <h2 class="text-white font-weight-bold m-0" style="font-size: 22px; letter-spacing: -0.5px;">Tabel Fakta Profit (DWH)</h2>
+            <p class="text-muted m-0" style="font-size: 13.5px;">Penyimpanan terpusat data dimensi finansial dan margin laba bersih produk</p>
         </div>
     </div>
 
-    <!-- TABEL UTAMA DWH FACT -->
-    <div class="card p-4 shadow-sm" style="background: #1c2541; border: none; border-radius: 12px;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h6 class="font-weight-bold text-success m-0" style="font-size: 14px;">
-                <i class="fas fa-database mr-2"></i> Log Skema Bintang (Fact Table)
-            </h6>
-            <span class="badge text-success font-weight-bold px-3 py-2" style="background: rgba(16, 185, 129, 0.1); border-radius: 6px;">
-                Total Profit Terkumpul: Rp 69.950.340.000
-            </span>
+    <div class="card border-0 shadow-lg" style="background-color: #1c2541; border: 1px solid #334155 !important; border-radius: 10px; overflow: hidden;">
+        
+        <div class="card-header border-0 d-flex align-items-center justify-content-between p-4" style="background-color: rgba(0,0,0,0.15); border-bottom: 1px solid #334155 !important;">
+            <div class="d-flex align-items-center text-info font-weight-bold text-uppercase" style="font-size: 12.5px; letter-spacing: 0.8px;">
+                <i class="fas fa-database mr-2"></i> Fact Table Records
+            </div>
+            <span class="badge badge-dark px-3 py-2 text-muted font-weight-bold" style="background-color: #0b1329; font-size: 11px;">ReadOnly Warehouse Matrix</span>
         </div>
 
         <div class="table-responsive">
-            <table class="table text-white mb-0" style="border-color: #334155;">
+            <table class="table text-white mb-0" style="font-size: 13.5px; background-color: #1c2541;">
                 <thead>
-                    <tr style="border-bottom: 2px solid #334155; color: #64748b; font-size: 13px; letter-spacing: 0.5px;">
-                        <th style="border: none; padding-bottom: 12px;">ID SK fakta</th>
-                        <th style="border: none; padding-bottom: 12px;">ID Waktu (Key)</th>
-                        <th style="border: none; padding-bottom: 12px;">ID Dim Cabang</th>
-                        <th style="border: none; padding-bottom: 12px;">Qty Terjual</th>
-                        <th style="border: none; padding-bottom: 12px;">Gross Revenue (Subtotal)</th>
-                        <th style="border: none; padding-bottom: 12px;">Net Profit (Keuntungan)</th>
+                    <tr style="background: rgba(0,0,0,0.25); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; border-bottom: 1px solid #334155;">
+                        <th class="border-0 px-4 py-3">Fact ID</th>
+                        <th class="border-0 px-4 py-3">SKU / Laptop ID</th>
+                        <th class="border-0 px-4 py-3">Total Gross Revenue</th>
+                        <th class="border-0 px-4 py-3">Total Cost (HPP)</th>
+                        <th class="border-0 px-4 py-3">Net Profit</th>
+                        <th class="border-0 px-4 py-3">Cabang ID</th>
                     </tr>
                 </thead>
-                <tbody style="font-size: 14px; color: #cbd5e1; font-family: 'Courier New', Courier, monospace;">
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <td>FACT-000219</td>
-                        <td class="text-info">20260527</td>
-                        <td>1 (Cabang Palu)</td>
-                        <td>10.754 Unit</td>
-                        <td>Rp 153.210.450.000</td>
-                        <td class="text-success font-weight-bold">Rp 23.410.120.000</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <td>FACT-000220</td>
-                        <td class="text-info">20260528</td>
-                        <td>2 (Cabang Donggala)</td>
-                        <td>10.680 Unit</td>
-                        <td>Rp 152.842.100.000</td>
-                        <td class="text-success font-weight-bold">Rp 23.120.040.000</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <td>FACT-000221</td>
-                        <td class="text-info">20260529</td>
-                        <td>3 (Cabang Parigi)</td>
-                        <td>10.829 Unit</td>
-                        <td>Rp 152.510.790.000</td>
-                        <td class="text-success font-weight-bold">Rp 23.420.180.000</td>
-                    </tr>
-                    <tr class="font-weight-bold" style="background: rgba(255,255,255,0.02); color: #ffffff;">
-                        <td colspan="3" class="text-right" style="padding: 16px;">TOTAL AGREGASI DWH:</td>
-                        <td class="text-warning">32.263 Unit</td>
-                        <td>Rp 458.563.340.000</td>
-                        <td class="text-success" style="font-size: 15px;">Rp 69.950.340.000</td>
-                    </tr>
+                <tbody>
+                    @forelse($daftarProfit as $row)
+                        <tr style="border-bottom: 1px solid rgba(51, 65, 85, 0.4);" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.02)'" onmouseout="this.style.backgroundColor='transparent'">
+                            
+                            <td class="px-4 py-3 font-weight-bold text-muted align-middle">
+                                #FCT-{{ $row->id_fact ?? $row->id ?? $loop->iteration }}
+                            </td>
+                            
+                            <td class="px-4 py-3 font-weight-bold text-white align-middle">
+                                {{ $row->id_laptop ?? $row->laptop_id ?? $row->sku_produk ?? 'Unit SKU' }}
+                            </td>
+                            
+                            <td class="px-4 py-3 text-white align-middle">
+                                Rp {{ number_format($row->total_pendapatan ?? $row->gross ?? $row->total_harga ?? 0, 0, ',', '.') }}
+                            </td>
+                            
+                            <td class="px-4 py-3 text-muted align-middle">
+                                Rp {{ number_format($row->hpp ?? $row->total_cost ?? 0, 0, ',', '.') }}
+                            </td>
+                            
+                            <td class="px-4 py-3 font-weight-bold text-success align-middle" style="color: #10b981 !important;">
+                                Rp {{ number_format($row->keuntungan_bersih ?? $row->profit ?? $row->keuntungan ?? 0, 0, ',', '.') }}
+                            </td>
+                            
+                            <td class="px-4 py-3 text-info font-weight-bold align-middle">
+                                <span class="badge px-2.5 py-1.5" style="background: rgba(6, 182, 212, 0.1); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.2);">
+                                    LOC-{{ $row->id_cabang ?? $row->cabang ?? '01' }}
+                                </span>
+                            </td>
+
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="px-4 py-5 text-center text-muted font-weight-bold">
+                                <i class="fas fa-server d-block mb-2 text-secondary" style="font-size: 22px;"></i>
+                                Pipa ETL belum dieksekusi. Tidak ada row di dalam tabel fakta `dwh_fact_penjualan`.
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
+
+        @if($daftarProfit->hasPages())
+            <div class="card-footer border-0 d-flex align-items-center justify-content-between p-4" style="background-color: rgba(0,0,0,0.15); border-top: 1px solid #334155 !important;">
+                <div class="text-muted" style="font-size: 12.5px;">
+                    Menampilkan <span class="text-white font-weight-bold">{{ $daftarProfit->firstItem() }}</span> - <span class="text-white font-weight-bold">{{ $daftarProfit->lastItem() }}</span> dari <span class="text-white font-weight-bold">{{ number_format($daftarProfit->total(), 0, ',', '.') }}</span> Baris Fakta DWH
+                </div>
+                <div class="d-flex" style="gap: 8px;">
+                    @if($daftarProfit->onFirstPage())
+                        <span class="btn btn-sm text-muted disabled" style="background: #0b1329; border: 1px solid #334155; font-size: 12px; cursor: not-allowed;">Sebelumnya</span>
+                    @else
+                        <a href="{{ $daftarProfit->previousPageUrl() }}" class="btn btn-sm text-white" style="background: #0b1329; border: 1px solid #334155; font-size: 12px;">Sebelumnya</a>
+                    @endif
+
+                    @if($daftarProfit->hasMorePages())
+                        <a href="{{ $daftarProfit->nextPageUrl() }}" class="btn btn-sm text-white" style="background: #0b1329; border: 1px solid #334155; font-size: 12px;">Selanjutnya</a>
+                    @else
+                        <span class="btn btn-sm text-muted disabled" style="background: #0b1329; border: 1px solid #334155; font-size: 12px; cursor: not-allowed;">Selanjutnya</span>
+                    @endif
+                </div>
+            </div>
+        @endif
+
     </div>
 </div>
 @endsection
-

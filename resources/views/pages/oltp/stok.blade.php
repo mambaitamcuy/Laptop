@@ -1,126 +1,104 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4 py-4" style="background-color: #0b1329; min-height: 100vh; color: #f8fafc;">
+<div class="p-4 p-md-5">
     
     <div class="d-flex align-items-center mb-4">
-        <div class="p-3 mr-3 shadow-sm" style="background: #1c2541; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
-            <i class="fas fa-box text-info" style="font-size: 18px;"></i>
+        <div class="rounded-circle d-flex align-items-center justify-content-center" 
+            style="width: 50px; height: 50px; background-color: #1c2541; border: 1px solid #334155;">
+            <i class="fas fa-boxes text-warning" style="font-size: 18px;"></i>
         </div>
-        <div>
-            <h4 class="font-weight-bold text-white m-0" style="letter-spacing: 0.5px; font-size: 22px;">Inventaris Stok Laptop (OLTP)</h4>
-            <small class="text-muted" style="font-size: 13px;">Data operasional stok produk real-time dari seluruh cabang toko Arkadia</small>
+        <div class="ml-3">
+            <h2 class="text-white font-weight-bold m-0" style="font-size: 22px; letter-spacing: -0.5px;">Stok Laptop Gudang (OLTP)</h2>
+            <p class="text-muted m-0" style="font-size: 13.5px;">Manajemen ketersediaan volume unit barang aktif</p>
         </div>
     </div>
 
-    <div class="card p-4 shadow-sm" style="background: #1c2541; border: none; border-radius: 12px;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h6 class="font-weight-bold text-info m-0" style="font-size: 14px;">
-                <i class="fas fa-list mr-2"></i> Daftar Aset Produk
-            </h6>
-            
-            <button type="button" class="btn text-white font-weight-bold px-3 py-2 shadow-sm" style="background: #00b4d8; border: none; border-radius: 6px; font-size: 13px; transition: 0.2s;" data-toggle="modal" data-target="#modalTambahStok">
-                <i class="fas fa-plus mr-2"></i> Tambah Stok
+    <div class="card border-0 shadow-lg" style="background-color: #1c2541; border: 1px solid #334155 !important; border-radius: 10px; overflow: hidden;">
+        
+        <div class="card-header border-0 d-flex align-items-center justify-content-between p-4" style="background-color: rgba(0,0,0,0.15); border-bottom: 1px solid #334155 !important;">
+            <div class="d-flex align-items-center text-warning font-weight-bold text-uppercase" style="font-size: 12.5px; letter-spacing: 0.8px;">
+                <i class="fas fa-layer-group mr-2"></i> Daftar Inventaris Produk
+            </div>
+            <button class="btn btn-warning font-weight-bold btn-sm px-3 py-2" style="border-radius: 6px; font-size: 12px; color: #0b1329;">
+                <i class="fas fa-plus mr-1"></i> Tambah Laptop
             </button>
         </div>
 
         <div class="table-responsive">
-            <table class="table text-white mb-0" style="border-color: #334155;">
+            <table class="table text-white mb-0" style="font-size: 13.5px; background-color: #1c2541;">
                 <thead>
-                    <tr style="border-bottom: 2px solid #334155; color: #64748b; font-size: 13px; letter-spacing: 0.5px;">
-                        <th style="border: none; padding-bottom: 12px;">ID</th>
-                        <th style="border: none; padding-bottom: 12px;">Nama Laptop</th>
-                        <th style="border: none; padding-bottom: 12px;">Brand / Merk</th>
-                        <th style="border: none; padding-bottom: 12px;">Sisa Stok</th>
-                        <th style="border: none; padding-bottom: 12px;">Harga Satuan</th>
-                        <th style="border: none; padding-bottom: 12px;">Status</th>
+                    <tr style="background: rgba(0,0,0,0.25); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; border-bottom: 1px solid #334155;">
+                        <th class="border-0 px-4 py-3">Kode Barang</th>
+                        <th class="border-0 px-4 py-3">Nama Laptop</th>
+                        <th class="border-0 px-4 py-3">Brand / Manufaktur</th>
+                        <th class="border-0 px-4 py-3">Harga Satuan</th>
+                        <th class="border-0 px-4 py-3">Sisa Stok</th>
+                        <th class="border-0 px-4 py-3">Status</th>
                     </tr>
                 </thead>
-                <tbody style="font-size: 14px; color: #cbd5e1;">
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <td class="align-middle" style="padding: 16px 8px;">1</td>
-                        <td class="align-middle font-weight-bold text-white" style="padding: 16px 8px;">Asus ROG Zephyrus G14</td>
-                        <td class="align-middle" style="padding: 16px 8px;">Asus</td>
-                        <td class="align-middle" style="padding: 16px 8px;">
-                            <span class="badge px-2 py-1 text-success font-weight-bold" style="background: rgba(34, 197, 94, 0.1); border-radius: 4px; font-size: 12px;">12 Unit</span>
-                        </td>
-                        <td class="align-middle" style="padding: 16px 8px;">Rp 24.500.000</td>
-                        <td class="align-middle text-success font-weight-bold" style="padding: 16px 8px;">Tersedia</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <td class="align-middle" style="padding: 16px 8px;">2</td>
-                        <td class="align-middle font-weight-bold text-white" style="padding: 16px 8px;">MacBook Air M2 2023</td>
-                        <td class="align-middle" style="padding: 16px 8px;">Apple</td>
-                        <td class="align-middle" style="padding: 16px 8px;">
-                            <span class="badge px-2 py-1 text-warning font-weight-bold" style="background: rgba(234, 179, 8, 0.1); border-radius: 4px; font-size: 12px;">3 Unit</span>
-                        </td>
-                        <td class="align-middle" style="padding: 16px 8px;">Rp 18.200.000</td>
-                        <td class="align-middle text-warning font-weight-bold" style="padding: 16px 8px;">Stok Menipis</td>
-                    </tr>
+                <tbody>
+                    @forelse($daftarStok as $stok)
+                        <tr style="border-bottom: 1px solid rgba(51, 65, 85, 0.4);" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.02)'" onmouseout="this.style.backgroundColor='transparent'">
+                            <td class="px-4 py-3 font-weight-bold text-muted align-middle">
+                                {{ $stok->kode_laptop ?? $stok->kode_produk ?? $stok->kode ?? 'LP-'.$stok->id }}
+                            </td>
+                            <td class="px-4 py-3 font-weight-bold text-white align-middle">
+                                {{ $stok->nama_laptop ?? $stok->nama ?? $stok->produk ?? 'Unit Laptop' }}
+                            </td>
+                            <td class="px-4 py-3 text-white align-middle">
+                                {{ ucfirst($stok->brand ?? $stok->merk ?? $stok->kategori ?? 'Generic') }}
+                            </td>
+                            <td class="px-4 py-3 font-weight-bold text-white align-middle">
+                                Rp {{ number_format($stok->harga ?? $stok->harga_jual ?? 0, 0, ',', '.') }}
+                            </td>
+                            <td class="px-4 py-3 font-weight-bold text-warning align-middle">
+                                @php $qty = $stok->stok ?? $stok->qty ?? $stok->jumlah ?? 0; @endphp
+                                {{ $qty }} Unit
+                            </td>
+                            <td class="px-4 py-3 align-middle">
+                                @if($qty > 5)
+                                    <span class="badge px-2 py-1" style="background: rgba(40, 167, 69, 0.15); color: #28a745; border: 1px solid rgba(40, 167, 69, 0.3);">Ready Stok</span>
+                                @elseif($qty > 0)
+                                    <span class="badge px-2 py-1" style="background: rgba(255, 193, 7, 0.15); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3);">Stok Tipis</span>
+                                @else
+                                    <span class="badge px-2 py-1" style="background: rgba(220, 53, 69, 0.15); color: #dc3545; border: 1px solid rgba(220, 53, 69, 0.3);">Habis</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="px-4 py-5 text-center text-muted font-weight-bold">
+                                <i class="fas fa-cubes d-block mb-2 text-secondary" style="font-size: 22px;"></i>
+                                Belum ada data aset gudang yang terdaftar di database.
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
-    </div>
-</div>
 
-<div class="modal fade" id="modalTambahStok" tabindex="-1" role="dialog" aria-labelledby="modalTambahStokLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content" style="background: #1c2541; color: #f8fafc; border: 1px solid #334155; border-radius: 12px;">
-            <div class="modal-header" style="border-bottom: 1px solid #334155;">
-                <h5 class="modal-title font-weight-bold text-white" id="modalTambahStokLabel" style="font-size: 16px;">
-                    <i class="fas fa-laptop mr-2 text-info"></i> Tambah Inventaris Laptop (OLTP)
-                </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="opacity: 0.8;">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+        @if($daftarStok->hasPages())
+            <div class="card-footer border-0 d-flex align-items-center justify-content-between p-4" style="background-color: rgba(0,0,0,0.15); border-top: 1px solid #334155 !important;">
+                <div class="text-muted" style="font-size: 12.5px;">
+                    Menampilkan <span class="text-white font-weight-bold">{{ $daftarStok->firstItem() }}</span> - <span class="text-white font-weight-bold">{{ $daftarStok->lastItem() }}</span> dari <span class="text-white font-weight-bold">{{ $daftarStok->total() }}</span> Barang
+                </div>
+                <div class="d-flex" style="gap: 8px;">
+                    @if($daftarStok->onFirstPage())
+                        <span class="btn btn-sm text-muted disabled" style="background: #0b1329; border: 1px solid #334155; font-size: 12px;">Sebelumnya</span>
+                    @else
+                        <a href="{{ $daftarStok->previousPageUrl() }}" class="btn btn-sm text-white" style="background: #0b1329; border: 1px solid #334155; font-size: 12px;">Sebelumnya</a>
+                    @endif
+
+                    @if($daftarStok->hasMorePages())
+                        <a href="{{ $daftarStok->nextPageUrl() }}" class="btn btn-sm text-white" style="background: #0b1329; border: 1px solid #334155; font-size: 12px;">Selanjutnya</a>
+                    @else
+                        <span class="btn btn-sm text-muted disabled" style="background: #0b1329; border: 1px solid #334155; font-size: 12px;">Selanjutnya</span>
+                    @endif
+                </div>
             </div>
-            
-            <form id="formTambahStok" action="#" method="POST">
-                @csrf
-                <div class="modal-body" style="font-size: 13px;">
-                    <div class="form-group mb-3">
-                        <label class="font-weight-bold text-muted mb-1" style="letter-spacing: 0.5px;">NAMA LAPTOP</label>
-                        <input type="text" class="form-control text-white" placeholder="Contoh: Asus ROG Strix G16" style="background: #0b1329; border: 1px solid #334155; border-radius: 6px;" required>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label class="font-weight-bold text-muted mb-1" style="letter-spacing: 0.5px;">BRAND / MERK</label>
-                        <input type="text" class="form-control text-white" placeholder="Contoh: Asus" style="background: #0b1329; border: 1px solid #334155; border-radius: 6px;" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 form-group mb-3">
-                            <label class="font-weight-bold text-muted mb-1" style="letter-spacing: 0.5px;">SISA STOK</label>
-                            <input type="number" class="form-control text-white" placeholder="0" style="background: #0b1329; border: 1px solid #334155; border-radius: 6px;" required>
-                        </div>
-                        <div class="col-md-6 form-group mb-3">
-                            <label class="font-weight-bold text-muted mb-1" style="letter-spacing: 0.5px;">HARGA SATUAN</label>
-                            <input type="number" class="form-control text-white" placeholder="Rp" style="background: #0b1329; border: 1px solid #334155; border-radius: 6px;" required>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer" style="border-top: 1px solid #334155;">
-                    <button type="button" class="btn btn-secondary font-weight-bold px-3 py-2" data-dismiss="modal" style="border-radius: 6px; font-size: 13px;">Batal</button>
-                    <button type="submit" class="btn text-white font-weight-bold px-4 py-2" style="background: #00b4d8; border-radius: 6px; font-size: 13px;">Simpan ke OLTP</button>
-                </div>
-            </form>
-        </div>
+        @endif
+
     </div>
 </div>
-@endsection
-
-@section('scripts')
-<script>
-    // Trik pemicu sukses modal saat ditekan tombol Simpan
-    document.getElementById('formTambahStok').addEventListener('submit', function(e) {
-        e.preventDefault(); // Mencegah reload error atau blank page
-        
-        // Memunculkan pemberitahuan sistem sukses
-        alert('Sistem OLTP: Data Laptop Baru Berhasil Disimpan ke Database Operasional!');
-        
-        // Menutup modal pop-up secara otomatis
-        $('#modalTambahStok').modal('hide');
-        
-        // Refresh halaman web agar seolah-olah data masuk ke list
-        window.location.reload(); 
-    });
-</script>
 @endsection
