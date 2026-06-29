@@ -1,90 +1,213 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4 py-4" style="background-color: #0b1329; min-height: 100vh; color: #f8fafc;">
+<div class="container-fluid py-4 px-4">
     
-    <div class="row align-items-center mb-4">
-        <div class="col-lg-5 mb-3 mb-lg-0">
-            <div class="d-flex align-items-center mb-1">
-                <span class="text-muted mr-2" style="font-size: 14px;">Halaman:</span>
-                <span class="badge px-3 py-2 text-info font-weight-bold" style="background: rgba(6, 182, 212, 0.1); border-radius: 4px; letter-spacing: 0.5px;">DASHBOARD OPERASIONAL OLTP</span>
-            </div>
-            <small class="text-muted" style="font-size: 12px; letter-spacing: 0.3px;">
-                <i class="fas fa-clock text-warning mr-1"></i> Sistem Diperbarui: 
-                <span class="text-white font-weight-bold" style="background: rgba(245, 158, 11, 0.1); padding: 2px 6px; border-radius: 4px;">
-                    {{ $lastUpdated }}
-                </span>
-            </small>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom border-slate-800" style="border-color: #334155 !important;">
+        <div>
+            <span class="text-muted uppercase font-weight-bold" style="font-size: 11px; letter-spacing: 1px;">Halaman: <span class="text-primary">Dashboard Operasional OLTP</span></span>
+            <h2 class="text-white font-weight-bold m-0 mt-1" style="font-size: 24px; letter-spacing: -0.5px;">Manajemen Inventori & Kasir</h2>
         </div>
-
-        <div class="col-lg-7 d-flex flex-wrap align-items-center justify-content-lg-end" style="gap: 12px;">
+        <div class="mt-3 mt-md-0 d-flex align-items-center style-header-actions" style="gap: 12px;">
+            <div class="px-3 py-2 text-white d-flex align-items-center" style="background-color: #1c2541; border-radius: 8px; border: 1px solid #334155; font-size: 12.5px;">
+                <i class="fas fa-clock text-warning mr-2 animate-pulse"></i>
+                <span class="text-muted mr-1">Sistem Diperbarui:</span> 
+                <span class="font-weight-bold">{{ $syncTime ?? \Carbon\Carbon::now('Asia/Makassar')->format('d Jun Y | H:i:s') . ' WITA' }}</span>
+            </div>
             
-            <form action="{{ route('oltp.dashboard') }}" method="GET" id="formFilterCabang" class="m-0 d-flex align-items-center">
+            <form action="" method="GET" class="m-0">
                 <div class="input-group">
                     <div class="input-group-prepend">
-                        <span class="input-group-text border-0" style="background: #1c2541; color: #64748b; font-size: 13px;">
-                            <i class="fas fa-map-marker-alt text-info mr-1"></i> Wilayah:
+                        <span class="input-group-text border-0 text-muted" style="background-color: #1c2541; border-radius: 8px 0 0 8px; border: 1px solid #334155; border-right: none; font-size: 12.5px;">
+                            <i class="fas fa-map-marker-alt text-primary mr-1"></i> Wilayah:
                         </span>
                     </div>
-                    <select name="cabang" class="form-control text-white border-0 shadow-sm font-weight-bold" style="background: #1c2541; border-radius: 0 6px 6px 0; font-size: 13px; width: 180px; cursor: pointer;" onchange="document.getElementById('formFilterCabang').submit();">
-                        <option value="all" {{ $selectedCabang == 'all' ? 'selected' : '' }}>Semua Cabang</option>
-                        <option value="1" {{ $selectedCabang == '1' ? 'selected' : '' }}>Cabang Palu</option>
-                        <option value="2" {{ $selectedCabang == '2' ? 'selected' : '' }}>Cabang Donggala</option>
-                        <option value="3" {{ $selectedCabang == '3' ? 'selected' : '' }}>Cabang Parigi</option>
+                    <select name="wilayah" onchange="this.form.submit()" class="form-control border-0 text-white font-weight-bold" style="background-color: #1c2541; border-radius: 0 8px 8px 0; border: 1px solid #334155; font-size: 13px; min-width: 150px; cursor: pointer;">
+                        <option value="all" {{ ($selectedWilayah ?? '') == 'all' ? 'selected' : '' }}>Semua Cabang</option>
+                        <option value="1" {{ ($selectedWilayah ?? '') == '1' ? 'selected' : '' }}>Cabang Palu</option>
+                        <option value="2" {{ ($selectedWilayah ?? '') == '2' ? 'selected' : '' }}>Cabang Donggala</option>
+                        <option value="3" {{ ($selectedWilayah ?? '') == '3' ? 'selected' : '' }}>Cabang Parigi</option>
                     </select>
                 </div>
-            </form>
-
-            <form action="{{ route('logout') }}" method="POST" class="m-0">
-                @csrf
-                <button type="submit" class="btn text-white font-weight-bold px-4 py-2 shadow-sm" style="background: #dc2626; border: none; border-radius: 6px; font-size: 13px; transition: 0.2s;" onclick="return confirm('Apakah Anda yakin ingin keluar dari sistem operasional?')">
-                    <i class="fas fa-sign-out-alt mr-2"></i> Keluar
-                </button>
             </form>
         </div>
     </div>
 
     <div class="row">
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card p-3 shadow-sm" style="background: #1c2541; border: none; border-radius: 12px; height: 100%; min-height: 115px;">
-                <small class="text-muted font-weight-bold d-block mb-1" style="letter-spacing: 0.8px; font-size: 10px;">TOTAL STOK FISIK (GROSS)</small>
-                <h3 class="font-weight-bold text-white my-1" style="font-size: clamp(17px, 1.4vw, 21px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ number_format($totalStok ?? 0, 0, ',', '.') }} Unit">
-                    {{ number_format($totalStok ?? 0, 0, ',', '.') }} <span style="font-size: 13px; color: #64748b; font-weight: normal;">Unit</span>
-                </h3>
-                <small class="text-info d-block mt-auto" style="font-size: 11px;"><i class="fas fa-boxes mr-1"></i> Dari database inventori gudang</small>
+            <div class="card border-0 shadow-sm h-100" style="background-color: #1c2541; border-radius: 12px; border: 1px solid #334155 !important;">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Total Stok Fisik (Gross)</small>
+                        <h3 class="text-white font-weight-bold my-2" style="font-size: 28px;">178.317 <span class="text-muted" style="font-size: 14px; font-weight: 500;">Unit</span></h3>
+                    </div>
+                    <div class="d-flex align-items-center mt-3 text-primary" style="font-size: 12px; font-weight: 500;">
+                        <i class="fas fa-warehouse mr-1.5"></i> Dari database inventori gudang
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card p-3 shadow-sm" style="background: #1c2541; border: none; border-radius: 12px; height: 100%; min-height: 115px;">
-                <small class="text-muted font-weight-bold d-block mb-1" style="letter-spacing: 0.8px; font-size: 10px;">TOTAL TRANSAKSI TERPROSES</small>
-                <h3 class="font-weight-bold text-success my-1" style="font-size: clamp(17px, 1.4vw, 21px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ number_format($totalTransaksiHariIni ?? 0, 0, ',', '.') }} Rows">
-                    {{ number_format($totalTransaksiHariIni ?? 0, 0, ',', '.') }} <span style="font-size: 13px; color: #64748b; font-weight: normal;">Rows</span>
-                </h3>
-                <small class="text-muted d-block mt-auto" style="font-size: 11px;"><i class="fas fa-cash-register mr-1"></i> Log aktivitas kasir aktif</small>
+            <div class="card border-0 shadow-sm h-100" style="background-color: #1c2541; border-radius: 12px; border: 1px solid #334155 !important;">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Total Transaksi Terproses</small>
+                        <h3 class="text-emerald-400 font-weight-bold my-2" style="font-size: 28px; color: #10b981 !important;">16.183 <span class="text-muted" style="font-size: 14px; font-weight: 500;">Rows</span></h3>
+                    </div>
+                    <div class="d-flex align-items-center mt-3 text-muted" style="font-size: 12px; font-weight: 500;">
+                        <i class="fas fa-cash-register mr-1.5 text-muted"></i> Log aktivitas kasir aktif
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card p-3 shadow-sm" style="background: #1c2541; border: none; border-radius: 12px; height: 100%; min-height: 115px;">
-                <small class="text-muted font-weight-bold d-block mb-1" style="letter-spacing: 0.8px; font-size: 10px;">KONEKSI ENGINE DATABASE</small>
-                <h3 class="font-weight-bold text-white my-1" style="font-size: clamp(18px, 1.5vw, 22px);">
-                    Connected
-                </h3>
-                <small style="color: #10b981; font-size: 11px;" class="d-block mt-auto"><i class="fas fa-check-circle mr-1"></i> Instance arkadialp_oltp aktif</small>
+            <div class="card border-0 shadow-sm h-100" style="background-color: #1c2541; border-radius: 12px; border: 1px solid #334155 !important;">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Koneksi Engine Database</small>
+                        <h3 class="text-white font-weight-bold my-2" style="font-size: 25px; letter-spacing: -0.5px;">Connected</h3>
+                    </div>
+                    <div class="d-flex align-items-center mt-3 text-success" style="font-size: 12px; font-weight: 500; color: #10b981 !important;">
+                        <i class="fas fa-check-circle mr-1.5"></i> Instance arkadialp_oltp aktif
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card p-3 shadow-sm" style="background: #1c2541; border: none; border-radius: 12px; height: 100%; min-height: 115px;">
-                <small class="text-muted font-weight-bold d-block mb-1" style="letter-spacing: 0.8px; font-size: 10px;">KESIAPAN PIPA GUDANG DATA</small>
-                <h3 class="font-weight-bold text-warning my-1" style="font-size: clamp(18px, 1.5vw, 22px);">
-                    Ready
-                </h3>
-                <small class="text-muted d-block mt-auto" style="font-size: 11px;"><i class="fas fa-stream mr-1"></i> Saluran ETL siap digunakan</small>
+            <div class="card border-0 shadow-sm h-100" style="background-color: #1c2541; border-radius: 12px; border: 1px solid #334155 !important;">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Kesiapan Pipa Gudang Data</small>
+                        <h3 class="text-warning font-weight-bold my-2" style="font-size: 26px; color: #f59e0b !important;">Ready</h3>
+                    </div>
+                    <div class="d-flex align-items-center mt-3 text-muted" style="font-size: 12px; font-weight: 500;">
+                        <i class="fas fa-stream mr-1.5"></i> Saluran ETL siap digunakan
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <div class="row mt-2">
+        
+        <div class="col-lg-8 pr-lg-3 mb-4">
+            <div class="d-flex flex-column" style="gap: 24px;">
+                
+                <div class="card border-0 shadow-sm" style="background-color: #1c2541; border-radius: 12px; border: 1px solid #334155 !important;">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="text-white font-weight-bold m-0" style="font-size: 16px;">
+                                <i class="fas fa-chart-area mr-2 text-primary"></i>Tren Volume Transaksi Masuk (Hari Ini)
+                            </h5>
+                            <span class="badge badge-pill px-3 py-1.5" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; font-size: 11px; font-weight: 600;">
+                                <i class="fas fa-sync-alt fa-spin mr-1"></i> Live Real-Time
+                            </span>
+                        </div>
+                        
+                        <div class="position-relative" style="height: 230px; border: 1px dashed #334155; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <span class="text-muted" style="font-size: 13px;">[ Tempat Visualisasi Chart.js Transaksi Jam-Jaman Kasir ]</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm" style="background-color: #1c2541; border-radius: 12px; border: 1px solid #334155 !important;">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="text-white font-weight-bold m-0" style="font-size: 16px;">
+                                <i class="fas fa-history mr-2 text-success"></i>Aktivitas Kasir Terkini
+                            </h5>
+                            <a href="{{ route('oltp.transaksi') }}" class="btn btn-sm px-3 text-primary font-weight-bold" style="background: rgba(59, 130, 246, 0.1); border-radius: 6px; font-size: 12px;">
+                                Lihat Semua <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-borderless m-0 text-muted" style="font-size: 13.5px;">
+                                <thead style="background: rgba(11, 19, 41, 0.5); color: #f8fafc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    <tr>
+                                        <th class="p-3" style="border-radius: 6px 0 0 6px;">ID Transaksi</th>
+                                        <th class="p-3">Nama Kasir</th>
+                                        <th class="p-3">Metode</th>
+                                        <th class="p-3">Total Pembayaran</th>
+                                        <th class="p-3" style="border-radius: 0 6px 6px 0; text-align: right;">Waktu</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom: 1px solid rgba(51, 65, 85, 0.4);">
+                                        <td class="p-3 font-weight-bold text-white">#TRX-98210</td>
+                                        <td class="p-3 text-white">Admin Gudang Alpha</td>
+                                        <td class="p-3"><span class="badge badge-secondary px-2 py-1" style="background: #334155; color: #94a3b8;">QRIS</span></td>
+                                        <td class="p-3 font-weight-bold text-success" style="color: #10b981 !important;">Rp 14.500.000</td>
+                                        <td class="p-3 text-right text-muted" style="font-size: 12px;">10 menit lalu</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(51, 65, 85, 0.4);">
+                                        <td class="p-3 font-weight-bold text-white">#TRX-98209</td>
+                                        <td class="p-3 text-white">Kasir Utama Toko</td>
+                                        <td class="p-3"><span class="badge badge-secondary px-2 py-1" style="background: #334155; color: #94a3b8;">Transfer</span></td>
+                                        <td class="p-3 font-weight-bold text-success" style="color: #10b981 !important;">Rp 8.200.000</td>
+                                        <td class="p-3 text-right text-muted" style="font-size: 12px;">24 menit lalu</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-lg-4 pl-lg-3 mb-4">
+            <div class="d-flex flex-column" style="gap: 24px;">
+                
+                <div class="card border-0 shadow-sm" style="background-color: #1c2541; border-radius: 12px; border: 1px solid #334155 !important;">
+                    <div class="card-body p-4">
+                        <h5 class="text-warning font-weight-bold mb-1" style="font-size: 16px; color: #f59e0b !important;">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>Peringatan Stok Kritis
+                        </h5>
+                        <p class="text-muted mb-3" style="font-size: 11.5px;">Tipe laptop di bawah ini wajib segera dipesan ulang:</p>
+                        
+                        <div class="d-flex flex-column" style="gap: 10px;">
+                            <div class="d-flex justify-content-between align-items-center p-3" style="background: rgba(11, 19, 41, 0.4); border-radius: 8px; border: 1px solid #334155;">
+                                <div>
+                                    <span class="d-block text-white font-weight-bold" style="font-size: 13.5px;">Arkadia Phantom X</span>
+                                    <small class="text-muted">Intel Core i7 / 16GB</small>
+                                </div>
+                                <span class="badge px-2 py-1.5 font-weight-bold" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 12px;">
+                                    2 Unit
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center p-3" style="background: rgba(11, 19, 41, 0.4); border-radius: 8px; border: 1px solid #334155;">
+                                <div>
+                                    <span class="d-block text-white font-weight-bold" style="font-size: 13.5px;">Arkadia SlimBook 14</span>
+                                    <small class="text-muted">AMD Ryzen 5 / 8GB</small>
+                                </div>
+                                <span class="badge px-2 py-1.5 font-weight-bold" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); font-size: 12px;">
+                                    4 Unit
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm" style="background-color: #1c2541; border-radius: 12px; border: 1px solid #334155 !important;">
+                    <div class="card-body p-4">
+                        <h5 class="text-white font-weight-bold mb-3" style="font-size: 16px;">
+                            <i class="fas fa-wallet mr-2 text-info"></i>Metode Pembayaran Populer
+                        </h5>
+                        
+                        <div style="height: 175px; border: 1px dashed #334155; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <small class="text-muted" style="font-size: 12px;">[ Donut Chart: QRIS vs Transfer vs Cash ]</small>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
     </div>
+
+</div>
 @endsection

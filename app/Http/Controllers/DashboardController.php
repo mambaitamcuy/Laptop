@@ -59,7 +59,7 @@ class DashboardController extends Controller
             }
         }
         
-        // Ultimate Fallback jika tidak ada kata kunci yang cocok, ambil kolom indeks ke-3/ke-2 (biasanya kolom matriks nilai)
+        // Ultimate Fallback jika tidak ada kata kunci yang cocok
         if (empty($kolomGross) && !empty($columns)) {
             $kolomGross = isset($columns[3]) ? $columns[3] : (isset($columns[2]) ? $columns[2] : $columns[0]);
         }
@@ -90,7 +90,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * 1. Dashboard Eksekutif DWH dengan Filter Wilayah & Grafik Tren Profit (FIXED)
+     * 1. Dashboard Eksekutif DWH dengan Filter Wilayah & Grafik Tren Profit
      */
     public function index(Request $request)
     {
@@ -101,17 +101,29 @@ class DashboardController extends Controller
 
         $selectedWilayah = $request->input('wilayah', 'all');
         
-        // Deteksi kolom kunci cabang di tabel fakta dwh
-        $kolomCabang = 'id_cabang';
-        $kemungkinanCabang = ['sk_cabang', 'id_cabang', 'cabang_id', 'kode_cabang', 'cabang', 'id'];
-        foreach ($kemungkinanCabang as $c) {
-            if (in_array($c, $columns)) { $kolomCabang = $c; break; }
-        }
+        // 🔒 FIXED: Kunci langsung ke kolom asli DWH milikmu
+        $kolomCabang = 'id_dim_cabang';
 
         // Buat query dasar
         $query = DB::connection($this->koneksi)->table($this->tabelFakta);
+        
         if ($selectedWilayah !== 'all') {
-            $query->where($kolomCabang, $selectedWilayah);
+            // Konversi nama kota teks (Palu/Donggala/Parigi) menjadi ID angka jika filter mengirim string teks
+            if (!is_numeric($selectedWilayah)) {
+                if (str_contains(strtolower($selectedWilayah), 'palu')) {
+                    $idReal = 1;
+                } elseif (str_contains(strtolower($selectedWilayah), 'donggala')) {
+                    $idReal = 2;
+                } elseif (str_contains(strtolower($selectedWilayah), 'parigi')) {
+                    $idReal = 3;
+                } else {
+                    $idReal = 1; 
+                }
+            } else {
+                $idReal = $selectedWilayah;
+            }
+
+            $query->where($kolomCabang, $idReal);
         }
 
         // Formulasikan perhitungan finansial aman
@@ -136,7 +148,7 @@ class DashboardController extends Controller
         // Query tren grafik bulanan dinamis
         $trendQuery = DB::connection($this->koneksi)->table($this->tabelFakta);
         if ($selectedWilayah !== 'all') {
-            $trendQuery->where($kolomCabang, $selectedWilayah);
+            $trendQuery->where($kolomCabang, isset($idReal) ? $idReal : $selectedWilayah);
         }
 
         $trendData = $trendQuery->select(
@@ -173,7 +185,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * 3. Analisis Wilayah Cabang (DIAMANKAN JUGA DARI COLOUMN ERROR)
+     * 3. Analisis Wilayah Cabang
      */
     public function cabang() 
     { 
@@ -181,15 +193,8 @@ class DashboardController extends Controller
         $columns = Schema::connection($this->koneksi)->getColumnListing($this->tabelFakta);
         list($kolomGross, , , ) = $this->dapatkanMappingKolom($columns);
         
-        $kolomCabang = 'id_cabang';
-        $kemungkinanCabang = ['sk_cabang', 'id_cabang', 'cabang_id', 'kode_cabang', 'cabang', 'id'];
-        foreach ($kemungkinanCabang as $kolom) {
-            if (in_array($kolom, $columns)) { $kolomCabang = $kolom; break; }
-        }
-
-        if (!in_array($kolomCabang, $columns) && !empty($columns)) {
-            $kolomCabang = $columns[0];
-        }
+        // 🔒 FIXED: Samakan ke kolom asli
+        $kolomCabang = 'id_dim_cabang';
 
         $analisisCabang = DB::connection($this->koneksi)->table($this->tabelFakta)
             ->select($kolomCabang.' as lokasi_id', DB::raw('COUNT(*) as total_transaksi'), DB::raw("SUM($kolomGross) as total_omzet"))
