@@ -22,10 +22,10 @@ class DashboardController extends Controller
 
         if ($selectedWilayah !== 'all') {
             $query->join('arkadialp_dwh.dwh_dim_cabang', 'arkadialp_dwh.dwh_fact_penjualan.id_dim_cabang', '=', 'arkadialp_dwh.dwh_dim_cabang.id_dim_cabang')
-                  ->where(function($q) use ($selectedWilayah) {
-                      $q->where('arkadialp_dwh.dwh_dim_cabang.kota', $selectedWilayah)
+                ->where(function($q) use ($selectedWilayah) {
+                    $q->where('arkadialp_dwh.dwh_dim_cabang.kota', $selectedWilayah)
                         ->orWhere('arkadialp_dwh.dwh_dim_cabang.nama_cabang', 'LIKE', '%' . $selectedWilayah . '%');
-                  });
+                });
         }
 
         // Kloning query KPI dengan nama tabel eksplisit agar terhindar dari krisis kolisi/ambigu
@@ -48,10 +48,10 @@ class DashboardController extends Controller
 
         if ($selectedWilayah !== 'all') {
             $trendQuery->join('arkadialp_dwh.dwh_dim_cabang', 'arkadialp_dwh.dwh_fact_penjualan.id_dim_cabang', '=', 'arkadialp_dwh.dwh_dim_cabang.id_dim_cabang')
-                  ->where(function($q) use ($selectedWilayah) {
-                      $q->where('arkadialp_dwh.dwh_dim_cabang.kota', $selectedWilayah)
+                ->where(function($q) use ($selectedWilayah) {
+                    $q->where('arkadialp_dwh.dwh_dim_cabang.kota', $selectedWilayah)
                         ->orWhere('arkadialp_dwh.dwh_dim_cabang.nama_cabang', 'LIKE', '%' . $selectedWilayah . '%');
-                  });
+                });
         }
 
         $trendData = $trendQuery->select(
