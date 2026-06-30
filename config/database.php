@@ -26,7 +26,7 @@ return [
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
         ],
 
-        // Koneksi Standar / Default
+        // Koneksi Standar / Default (Menuju Operasional)
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DATABASE_URL'),
@@ -47,7 +47,7 @@ return [
             ]) : [],
         ],
 
-        // 1. KONEKSI YANG DICARI GOOGLE CONTROLLER (mysql_oltp)
+        // 1. KONEKSI UTAMA OPERASIONAL (OLTP)
         'mysql_oltp' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST_OLTP', '127.0.0.1'),
@@ -63,7 +63,7 @@ return [
             'engine' => null,
         ],
 
-        // 2. ALIAS KONEKSI UNTUK DASHBOARD CONTROLLER (oltp)
+        // 2. ALIAS KONEKSI UNTUK DASHBOARD OPERASIONAL
         'oltp' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST_OLTP', '127.0.0.1'),
@@ -79,7 +79,7 @@ return [
             'engine' => null,
         ],
 
-        // 3. KONEKSI DATA WAREHOUSE (dwh)
+        // 3. KONEKSI DATA WAREHOUSE (DWH) - DIKUNCI KE SINI
         'dwh' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST_DWH', '127.0.0.1'),

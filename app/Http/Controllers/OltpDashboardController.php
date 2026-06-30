@@ -7,120 +7,145 @@ use Illuminate\Support\Facades\DB;
 
 class OltpDashboardController extends Controller
 {
-    // Properti global database agar mudah diatur jika ada perubahan nama database
-    protected $dbOltp = 'arkadialp_oltp';
-    protected $kolomStokAsli = 'jumlah_stok'; // Sesuai hasil DESCRIBE phpMyAdmin
-
     /**
-     * 1. HALAMAN DASHBOARD UTAMA (Ringkasan Data Riil)
+     * 1. HALAMAN UTAMA DASHBOARD OPERASIONAL (OLTP)
      */
     public function index()
     {
-        // Total karyawan terdaftar
-        $totalKaryawan = DB::table($this->dbOltp . '.users')->count();
+        $totalStok = DB::table('laptops')->sum('stok') ?? 0;
+        $totalTransaksi = DB::table('penjualan')->count();
+        $totalKaryawan = DB::table('karyawan')->count();
+        $syncTime = now()->format('H:i:s');
 
-        // Total transaksi harian
-        $totalTransaksiHariIni = DB::table($this->dbOltp . '.penjualan')->count();
+        // Menggunakan kolom 'tanggal' (sesuai struktur tabel di gambar)
+        $volumeHariIni = DB::table('penjualan')
+                            ->whereDate('tanggal', now()->toDateString())
+                            ->count();
 
-        // Akumulasi pendapatan real-time
-        $pendapatanHariIni = DB::table($this->dbOltp . '.detail_penjualan')->sum('subtotal') ?? 0;
-
-        // Data 5 besar stok menipis (di bawah 15 unit) untuk widget alert
-        $stokMenipis = DB::table($this->dbOltp . '.stok_cabang as s')
-            ->join($this->dbOltp . '.produk as p', 's.id_produk', '=', 'p.id_produk')
-            ->join($this->dbOltp . '.cabang as c', 's.id_cabang', '=', 'c.id_cabang')
-            ->select('p.nama_produk', 'c.nama_cabang', 's.' . $this->kolomStokAsli . ' as stok') 
-            ->where('s.' . $this->kolomStokAsli, '<', 15)
-            ->orderBy('s.' . $this->kolomStokAsli, 'asc')
-            ->take(5)
-            ->get();
-
-        // Riwayat 5 transaksi kasir terbaru
-        $transaksiTerbaru = DB::table($this->dbOltp . '.penjualan as p')
-            ->join($this->dbOltp . '.cabang as c', 'p.id_cabang', '=', 'c.id_cabang')
-            ->select('p.id_penjualan', 'c.nama_cabang', 'p.id_user')
-            ->orderBy('p.id_penjualan', 'desc')
-            ->take(5)
-            ->get();
+        // Metode Pembayaran Terpopuler
+        $metodeTerpopuler = DB::table('penjualan')
+                                ->select('metode_pembayaran', DB::raw('count(*) as total'))
+                                ->groupBy('metode_pembayaran')
+                                ->orderBy('total', 'desc')
+                                ->first();
 
         return view('pages.oltp.dashboard', compact(
-            'totalTransaksiHariIni',
-            'pendapatanHariIni',
-            'totalKaryawan',
-            'stokMenipis',
-            'transaksiTerbaru'
+            'totalStok', 
+            'totalTransaksi', 
+            'totalKaryawan', 
+            'syncTime', 
+            'volumeHariIni', 
+            'metodeTerpopuler'
         ));
     }
 
     /**
-     * 2. HALAMAN MANAJEMEN KARYAWAN (Data Lengkap Staf + Cabang)
-     */
-    public function karyawan()
-    {
-        // Mengambil data user asli sekaligus menggabungkan tabel cabang
-        $daftarKaryawan = DB::table($this->dbOltp . '.users as u')
-            ->leftJoin($this->dbOltp . '.cabang as c', 'u.id_cabang', '=', 'c.id_cabang')
-            ->select('u.*', 'c.nama_cabang')
-            ->get();
-
-        return view('pages.oltp.karyawan', compact('daftarKaryawan'));
-    }
-
-    /**
-     * 3. HALAMAN INVENTARIS STOK LAPTOP (Data Lengkap Semua Stok Gudang & Cabang)
+     * 2. HALAMAN DAFTAR STOK LAPTOP
      */
     public function stok()
     {
-        // Mengambil seluruh aset produk lengkap dengan relasi stok cabang
-        $daftarStok = DB::table($this->dbOltp . '.stok_cabang as s')
-            ->join($this->dbOltp . '.produk as p', 's.id_produk', '=', 'p.id_produk')
-            ->join($this->dbOltp . '.cabang as c', 's.id_cabang', '=', 'c.id_cabang')
-            ->select(
-                's.id_stok', 
-                'p.nama_produk', 
-                'p.harga',   // Menarik kolom harga dari tabel produk
-                'p.brand',   // Menarik kolom brand/merk laptop
-                'c.nama_cabang', 
-                's.' . $this->kolomStokAsli . ' as stok', 
-                's.stok_minimum'
-            )
-            ->orderBy('c.nama_cabang', 'asc')
-            ->get();
+        $daftarStok = DB::table('laptops')
+                        ->orderBy('id', 'desc') 
+                        ->paginate(10);
 
         return view('pages.oltp.stok', compact('daftarStok'));
     }
 
     /**
-     * 4. HALAMAN TRANSAKSI KASIR (Data Lengkap Riwayat Penjualan)
+     * 3. PROSES SIMPAN DATA STOK LAPTOP BARU
      */
-    public function transaksi()
+    public function storeStok(Request $request)
     {
-        // Mengambil semua log riwayat transaksi tanpa batasan limit data
-        $daftarTransaksi = DB::table($this->dbOltp . '.penjualan as p')
-            ->join($this->dbOltp . '.cabang as c', 'p.id_cabang', '=', 'c.id_cabang')
-            ->select('p.id_penjualan', 'c.nama_cabang', 'p.id_user', 'p.tanggal_penjualan') 
-            ->orderBy('p.id_penjualan', 'desc')
-            ->get();
+        $request->validate([
+            'nama_laptop' => 'required|string|max:255',
+            'brand'       => 'required|string|max:100',
+            'stok'        => 'required|integer|min:0',
+            'harga'       => 'required|numeric|min:0',
+        ]);
 
-        return view('pages.oltp.transaksi', compact('daftarTransaksi'));
+        DB::table('laptops')->insert([
+            'nama_laptop' => $request->nama_laptop,
+            'brand'       => $request->brand,
+            'stok'        => $request->stok,
+            'harga'       => $request->harga,
+            'created_at'  => now(),
+            'updated_at'  => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Stok laptop baru berhasil disimpan!');
     }
 
     /**
-     * 5. TOMBOL EKSEKUSI PIPA ETL (Prosedur Antara OLTP ke DWH)
+     * 4. HALAMAN INPUT & RIWAYAT TRANSAKSI KASIR
      */
-    public function runEtl(Request $request)
+    public function transaksi()
     {
-        try {
-            DB::unprepared('CALL arkadialp_dwh.JalankanPipaETL()');
-            return response()->json([
-                'success' => true,
-                'message' => 'Pipa ETL Berhasil Dieksekusi!'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menjalankan ETL: ' . $e->getMessage()
-            ], 500);
-        }
+        $daftarTransaksi = DB::table('penjualan')
+                            ->orderBy('id_penjualan', 'desc')
+                            ->paginate(10);
+
+        $daftarLaptop = DB::table('laptops')
+                          ->orderBy('nama_laptop', 'asc')
+                          ->get();
+
+        return view('pages.oltp.transaksi', compact('daftarTransaksi', 'daftarLaptop'));
+    }
+
+    /**
+     * 5. PROSES SIMPAN TRANSAKSI PENJUALAN BARU
+     */
+    public function storeTransaksi(Request $request)
+    {
+        // Sesuaikan validasi dengan kolom yang tersedia di tabel 'penjualan'
+        $request->validate([
+            'metode_pembayaran' => 'required',
+            'total'             => 'required|numeric',
+        ]);
+
+        // Menyimpan data ke tabel 'penjualan' sesuai kolom yang ada di gambar
+        DB::table('penjualan')->insert([
+            'invoice'           => 'INV-' . date('YmdHis'),
+            'id_cabang'         => 1, // Sesuaikan dengan logika sistem Anda
+            'id_user'           => 1, // Sesuaikan dengan id user yang login
+            'metode_pembayaran' => $request->metode_pembayaran,
+            'total'             => $request->total,
+            'tanggal'           => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Transaksi berhasil disimpan!');
+    }
+
+    /**
+     * 6. HALAMAN DIREKTORI KARYAWAN
+     */
+    public function karyawan()
+    {
+        $daftarKaryawan = DB::table('karyawan')
+                            ->orderBy('id_karyawan', 'asc')
+                            ->paginate(10);
+
+        return view('pages.oltp.karyawan', compact('daftarKaryawan'));
+    }
+
+    /**
+     * 7. PROSES SIMPAN KARYAWAN BARU
+     */
+    public function storeKaryawan(Request $request)
+    {
+        $request->validate([
+            'nama'      => 'required|string|max:255',
+            'email'     => 'required|email|max:255',
+            'jabatan'   => 'required|string',
+        ]);
+
+        DB::table('karyawan')->insert([
+            'nama'       => $request->nama,
+            'email'      => $request->email,
+            'jabatan'    => $request->jabatan,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Karyawan berhasil didaftarkan!');
     }
 }

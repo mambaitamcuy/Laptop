@@ -56,9 +56,22 @@
             </a>
         </li>
         @endcan
+
+        <li class="mt-3">
+            <hr style="border-color: #334155; margin: 5px 0;">
+        </li>
+        <li>
+            <form action="{{ route('logout') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin keluar dari sistem Arkadia LP?')">
+                @csrf
+                <button type="submit" class="nav-link text-danger px-2 py-2 d-flex align-items-center rounded hover-effect-danger" style="background: none; border: none; width: 100%; text-align: left; font-size: inherit; font-family: inherit; cursor: pointer;">
+                    <i class="fas fa-sign-out-alt mr-2" style="width: 20px;"></i> Keluar Sistem
+                </button>
+            </form>
+        </li>
     </ul>
     
     <hr style="border-color: #334155;">
+    
     <div class="dropdown">
         <div class="d-flex align-items-center text-white text-decoration-none">
             <div class="bg-primary text-center rounded-circle font-weight-bold mr-2" style="width: 32px; height: 32px; line-height: 32px;">
@@ -76,5 +89,9 @@
     .hover-effect:hover {
         background-color: #0b1329;
         color: #0284c7 !important;
+    }
+    .hover-effect-danger:hover {
+        background-color: rgba(220, 53, 69, 0.15);
+        color: #dc3545 !important;
     }
 </style>
