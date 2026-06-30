@@ -14,13 +14,24 @@
         </div>
     </div>
 
+    {{-- Notifikasi Sukses / Gagal --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show border-0 text-white mb-4" role="alert" style="background-color: #28a745; border-radius: 8px;">
+            <i class="fas fa-check-circle mr-2"></i> {{ session('success') }}
+            <button type="button" class="close text-white" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
+
     <div class="card border-0 shadow-lg" style="background-color: #1c2541; border: 1px solid #334155 !important; border-radius: 10px; overflow: hidden;">
         
         <div class="card-header border-0 d-flex align-items-center justify-content-between p-4" style="background-color: rgba(0,0,0,0.15); border-bottom: 1px solid #334155 !important;">
             <div class="d-flex align-items-center text-warning font-weight-bold text-uppercase" style="font-size: 12.5px; letter-spacing: 0.8px;">
                 <i class="fas fa-layer-group mr-2"></i> Daftar Inventaris Produk
             </div>
-            <button class="btn btn-warning font-weight-bold btn-sm px-3 py-2" style="border-radius: 6px; font-size: 12px; color: #0b1329;">
+            {{-- AKTIVASI TOMBOL: Ditambahkan data-toggle dan data-target untuk memicu modal --}}
+            <button class="btn btn-warning font-weight-bold btn-sm px-3 py-2" data-toggle="modal" data-target="#modalTambahLaptop" style="border-radius: 6px; font-size: 12px; color: #0b1329;">
                 <i class="fas fa-plus mr-1"></i> Tambah Laptop
             </button>
         </div>
@@ -99,6 +110,59 @@
             </div>
         @endif
 
+    </div>
+</div>
+
+{{-- ─── POP-UP MODAL FORM TAMBAH LAPTOP (THEME MATCHED) ─── --}}
+<div class="modal fade" id="modalTambahLaptop" tabindex="-1" role="dialog" aria-labelledby="modalTambahLaptopLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg" style="background-color: #1c2541; border: 1px solid #334155 !important; border-radius: 12px;">
+            <div class="modal-header border-0 p-4" style="background-color: rgba(0,0,0,0.15); border-bottom: 1px solid #334155 !important;">
+                <h5 class="modal-title text-white font-weight-bold" id="modalTambahLaptopLabel" style="font-size: 16px;">
+                    <i class="fas fa-plus-circle text-warning mr-2"></i>Tambah Unit Laptop Baru
+                </h5>
+                <button type="button" class="close text-white shadow-none" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            
+            <form action="{{ route('oltp.stok.store') }}" method="POST">
+                @csrf
+                <div class="modal-body p-4 text-white" style="font-size: 13.5px;">
+                    
+                    <div class="form-group mb-3">
+                        <label class="text-muted font-weight-bold mb-2">Kode Barang <span class="text-danger">*</span></label>
+                        <input type="text" name="kode_laptop" class="form-control text-white border-0 px-3 py-2" placeholder="Contoh: LP-ARK-01" required style="background-color: #0b1329; border-radius: 6px;">
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="text-muted font-weight-bold mb-2">Nama Laptop <span class="text-danger">*</span></label>
+                        <input type="text" name="nama_laptop" class="form-control text-white border-0 px-3 py-2" placeholder="Contoh: Arkadia Phantom X" required style="background-color: #0b1329; border-radius: 6px;">
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="text-muted font-weight-bold mb-2">Brand / Manufaktur <span class="text-danger">*</span></label>
+                        <input type="text" name="brand" class="form-control text-white border-0 px-3 py-2" placeholder="Contoh: Asus, Lenovo, HP" required style="background-color: #0b1329; border-radius: 6px;">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-7 form-group mb-3">
+                            <label class="text-muted font-weight-bold mb-2">Harga Satuan (Rp) <span class="text-danger">*</span></label>
+                            <input type="number" name="harga" class="form-control text-white border-0 px-3 py-2" placeholder="0" required style="background-color: #0b1329; border-radius: 6px;">
+                        </div>
+                        <div class="col-md-5 form-group mb-3">
+                            <label class="text-muted font-weight-bold mb-2">Sisa Stok <span class="text-danger">*</span></label>
+                            <input type="number" name="stok" class="form-control text-white border-0 px-3 py-2" placeholder="0" required style="background-color: #0b1329; border-radius: 6px;">
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer border-0 p-3 d-flex justify-content-end" style="background-color: rgba(0,0,0,0.15); border-top: 1px solid #334155 !important; gap: 8px;">
+                    <button type="button" class="btn btn-sm font-weight-bold px-3 py-2 text-muted" data-dismiss="modal" style="background: #0b1329; border: 1px solid #334155; border-radius: 6px; font-size: 12px;">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-warning font-weight-bold px-3 py-2" style="border-radius: 6px; font-size: 12px; color: #0b1329;">Simpan Aset</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 @endsection

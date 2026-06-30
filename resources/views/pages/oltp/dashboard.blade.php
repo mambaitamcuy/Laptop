@@ -12,7 +12,7 @@
             <div class="px-3 py-2 text-white d-flex align-items-center" style="background-color: #1c2541; border-radius: 8px; border: 1px solid #334155; font-size: 12.5px;">
                 <i class="fas fa-clock text-warning mr-2 animate-pulse"></i>
                 <span class="text-muted mr-1">Sistem Diperbarui:</span> 
-                <span class="font-weight-bold">{{ $syncTime ?? \Carbon\Carbon::now('Asia/Makassar')->format('d Jun Y | H:i:s') . ' WITA' }}</span>
+                <span class="font-weight-bold">{{ $syncTime }}</span>
             </div>
             
             <form action="" method="GET" class="m-0">
@@ -39,7 +39,7 @@
                 <div class="card-body p-4 d-flex flex-column justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Total Stok Fisik (Gross)</small>
-                        <h3 class="text-white font-weight-bold my-2" style="font-size: 28px;">178.317 <span class="text-muted" style="font-size: 14px; font-weight: 500;">Unit</span></h3>
+                        <h3 class="text-white font-weight-bold my-2" style="font-size: 28px;">{{ number_format($totalStok, 0, ',', '.') }} <span class="text-muted" style="font-size: 14px; font-weight: 500;">Unit</span></h3>
                     </div>
                     <div class="d-flex align-items-center mt-3 text-primary" style="font-size: 12px; font-weight: 500;">
                         <i class="fas fa-warehouse mr-1.5"></i> Dari database inventori gudang
@@ -53,7 +53,7 @@
                 <div class="card-body p-4 d-flex flex-column justify-content-between">
                     <div>
                         <small class="text-muted font-weight-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Total Transaksi Terproses</small>
-                        <h3 class="text-emerald-400 font-weight-bold my-2" style="font-size: 28px; color: #10b981 !important;">16.183 <span class="text-muted" style="font-size: 14px; font-weight: 500;">Rows</span></h3>
+                        <h3 class="text-emerald-400 font-weight-bold my-2" style="font-size: 28px; color: #10b981 !important;">{{ number_format($totalTransaksi, 0, ',', '.') }} <span class="text-muted" style="font-size: 14px; font-weight: 500;">Rows</span></h3>
                     </div>
                     <div class="d-flex align-items-center mt-3 text-muted" style="font-size: 12px; font-weight: 500;">
                         <i class="fas fa-cash-register mr-1.5 text-muted"></i> Log aktivitas kasir aktif
@@ -107,8 +107,8 @@
                             </span>
                         </div>
                         
-                        <div class="position-relative" style="height: 230px; border: 1px dashed #334155; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                            <span class="text-muted" style="font-size: 13px;">[ Tempat Visualisasi Chart.js Transaksi Jam-Jaman Kasir ]</span>
+                        <div class="position-relative" style="height: 230px; border-radius: 8px;">
+                            <canvas id="realtimeOltpChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -198,8 +198,8 @@
                             <i class="fas fa-wallet mr-2 text-info"></i>Metode Pembayaran Populer
                         </h5>
                         
-                        <div style="height: 175px; border: 1px dashed #334155; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                            <small class="text-muted" style="font-size: 12px;">[ Donut Chart: QRIS vs Transfer vs Cash ]</small>
+                        <div style="height: 175px; border-radius: 8px;">
+                            <canvas id="paymentMethodChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -210,4 +210,77 @@
     </div>
 
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    
+    // 1. KONFIGURASI LINE CHART REALTIME (JAM-JAMAN KASIR)
+    const ctxOltp = document.getElementById('realtimeOltpChart').getContext('2d');
+    const lineGradient = ctxOltp.createLinearGradient(0, 0, 0, 230);
+    lineGradient.addColorStop(0, 'rgba(59, 130, 246, 0.35)'); // Warna gradasi biru tema asli Anda
+    lineGradient.addColorStop(1, 'rgba(59, 130, 246, 0.00)');
+
+    new Chart(ctxOltp, {
+        type: 'line',
+        data: {
+            labels: {!! json_encode($hourlyLabels ?? []) !!},
+            datasets: [{
+                label: 'Transaksi Masuk',
+                data: {!! json_encode($hourlyValues ?? []) !!},
+                borderColor: '#3b82f6', // Menyesuaikan warna utama teks halaman Anda
+                borderWidth: 2.5,
+                pointBackgroundColor: '#60a5fa',
+                pointHoverRadius: 5,
+                backgroundColor: lineGradient,
+                fill: true,
+                tension: 0.35
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#94a3b8', font: { size: 10 } }
+                },
+                y: {
+                    grid: { color: 'rgba(51, 65, 85, 0.2)' },
+                    ticks: { color: '#94a3b8', font: { size: 11 } },
+                    min: 0
+                }
+            }
+        }
+    });
+
+    // 2. KONFIGURASI DONUT CHART (METODE PEMBAYARAN POPULER)
+    const ctxDonut = document.getElementById('paymentMethodChart').getContext('2d');
+    new Chart(ctxDonut, {
+        type: 'doughnut',
+        data: {
+            labels: {!! json_encode($paymentLabels ?? []) !!},
+            datasets: [{
+                data: {!! json_encode($paymentValues ?? []) !!},
+                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'], // Sinkron dengan warna card (Biru, Emerald, Amber)
+                borderWidth: 2,
+                borderColor: '#1c2541', // Menyesuaikan warna dasar kartu Anda
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#94a3b8', font: { size: 11 }, padding: 10 }
+                }
+            },
+            cutout: '72%'
+        }
+    });
+});
+</script>
 @endsection

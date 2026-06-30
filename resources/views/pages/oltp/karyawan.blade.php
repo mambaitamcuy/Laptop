@@ -3,6 +3,19 @@
 @section('content')
 <div class="p-4 p-md-5">
     
+    {{-- Notifikasi Sukses / Error Validasi --}}
+    @if(session('success'))
+        <div class="alert alert-success border-0 shadow-sm mb-4 d-flex align-items-center text-white" style="background-color: #10b981; border-radius: 8px; font-size: 14px;">
+            <i class="fas fa-check-circle mr-2"></i> {{ session('success') }}
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger border-0 shadow-sm mb-4 text-white" style="background-color: #ef4444; border-radius: 8px; font-size: 14px;">
+            <i class="fas fa-exclamation-triangle mr-2"></i> Gagal menyimpan data! Periksa kembali form inputan Anda.
+        </div>
+    @endif
+    
     <div class="d-flex align-items-center mb-4">
         <div class="rounded-circle d-flex align-items-center justify-content-center" 
              style="width: 50px; height: 50px; background-color: #1c2541; border: 1px solid #334155;">
@@ -20,7 +33,7 @@
             <div class="d-flex align-items-center text-warning font-weight-bold text-uppercase" style="font-size: 12.5px; letter-spacing: 0.8px;">
                 <i class="fas fa-id-card mr-2"></i> Direktori Sumber Daya Manusia
             </div>
-            <button class="btn btn-warning font-weight-bold btn-sm px-3 py-2" style="border-radius: 6px; font-size: 12px; color: #0b1329;">
+            <button class="btn btn-warning font-weight-bold btn-sm px-3 py-2" data-toggle="modal" data-target="#modalTambahKaryawan" style="border-radius: 6px; font-size: 12px; color: #0b1329;">
                 <i class="fas fa-user-plus mr-1"></i> Daftarkan Karyawan
             </button>
         </div>
@@ -63,7 +76,7 @@
                             
                             <td class="px-4 py-3 text-white font-weight-bold align-middle">
                                 <i class="fas fa-store text-info mr-1" style="font-size: 11px;"></i>
-                                @if(isset($kry->id_cabang) || isset($kry->cabang))
+                                @if(!empty($kry->id_cabang) || !empty($kry->cabang))
                                     Cabang {{ $kry->id_cabang ?? $kry->cabang }}
                                 @else
                                     Pusat (Arkadia Headquarter)
@@ -89,14 +102,12 @@
                     Menampilkan <span class="text-white font-weight-bold">{{ $daftarKaryawan->firstItem() }}</span> - <span class="text-white font-weight-bold">{{ $daftarKaryawan->lastItem() }}</span> dari <span class="text-white font-weight-bold">{{ number_format($daftarKaryawan->total(), 0, ',', '.') }}</span> Staf
                 </div>
                 <div class="d-flex" style="gap: 8px;">
-                    {{-- Tombol Previous --}}
                     @if($daftarKaryawan->onFirstPage())
                         <span class="btn btn-sm text-muted disabled" style="background: #0b1329; border: 1px solid #334155; font-size: 12px; cursor: not-allowed;">Sebelumnya</span>
                     @else
                         <a href="{{ $daftarKaryawan->previousPageUrl() }}" class="btn btn-sm text-white" style="background: #0b1329; border: 1px solid #334155; font-size: 12px;">Sebelumnya</a>
                     @endif
 
-                    {{-- Tombol Next --}}
                     @if($daftarKaryawan->hasMorePages())
                         <a href="{{ $daftarKaryawan->nextPageUrl() }}" class="btn btn-sm text-white" style="background: #0b1329; border: 1px solid #334155; font-size: 12px;">Selanjutnya</a>
                     @else
@@ -106,6 +117,68 @@
             </div>
         @endif
 
+    </div>
+</div>
+
+{{-- STRUCTURE POP-UP MODAL FORM REGISTRASI KARYAWAN --}}
+<div class="modal fade" id="modalTambahKaryawan" tabindex="-1" role="dialog" aria-labelledby="modalTambahKaryawanLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content text-white" style="background-color: #1c2541; border: 1px solid #334155; border-radius: 10px;">
+            <div class="modal-header border-0 p-4" style="border-bottom: 1px solid #334155 !important;">
+                <h5 class="modal-title font-weight-bold text-warning" id="modalTambahKaryawanLabel" style="font-size: 16px;">
+                    <i class="fas fa-user-plus mr-2"></i> Registrasi Staf Operasional Baru
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="opacity: 0.7;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{ route('oltp.karyawan.store') }}" method="POST">
+                @csrf
+                <div class="modal-body p-4">
+                    
+                    <div class="form-group mb-3">
+                        <label class="text-muted font-weight-bold text-uppercase mb-2" style="font-size: 11px; letter-spacing: 0.5px;">Nama Lengkap Karyawan</label>
+                        <input type="text" name="nama" class="form-control text-white" 
+                               style="background-color: #0b1329; border: 1px solid #334155; border-radius: 6px; font-size: 13.5px; height: 42px;" 
+                               placeholder="Contoh: Ahmad Razak" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="text-muted font-weight-bold text-uppercase mb-2" style="font-size: 11px; letter-spacing: 0.5px;">Email Kontak Resmi</label>
+                        <input type="email" name="email" class="form-control text-white" 
+                               style="background-color: #0b1329; border: 1px solid #334155; border-radius: 6px; font-size: 13.5px; height: 42px;" 
+                               placeholder="Contoh: ahmad@arkadia.com" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="text-muted font-weight-bold text-uppercase mb-2" style="font-size: 11px; letter-spacing: 0.5px;">Jabatan / Tingkat Otorisasi</label>
+                        <select name="jabatan" class="form-control text-white" 
+                                style="background-color: #0b1329; border: 1px solid #334155; border-radius: 6px; font-size: 13.5px; height: 42px; color-scheme: dark;">
+                            <option value="kasir">Kasir Toko (Staf)</option>
+                            <option value="admin">Admin Gudang / Operasional</option>
+                            <option value="manajer">Manajer Cabang</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="text-muted font-weight-bold text-uppercase mb-2" style="font-size: 11px; letter-spacing: 0.5px;">Penempatan Lokasi Cabang</label>
+                        <select name="id_cabang" class="form-control text-white" 
+                                style="background-color: #0b1329; border: 1px solid #334155; border-radius: 6px; font-size: 13.5px; height: 42px; color-scheme: dark;">
+                            <option value="">Pusat (Arkadia Headquarter)</option>
+                            <option value="1">Cabang Regional 01</option>
+                            <option value="2">Cabang Regional 02</option>
+                        </select>
+                    </div>
+
+                </div>
+                <div class="modal-footer border-0 p-4" style="border-top: 1px solid #334155 !important; background-color: rgba(0,0,0,0.15);">
+                    <button type="button" class="btn btn-sm font-weight-bold px-3 py-2 text-muted" data-dismiss="modal" style="font-size: 12px;">Batal</button>
+                    <button type="submit" class="btn btn-warning btn-sm font-weight-bold px-4 py-2" style="border-radius: 6px; font-size: 12px; color: #0b1329;">
+                        <i class="fas fa-save mr-1"></i> Simpan Staff
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 @endsection
