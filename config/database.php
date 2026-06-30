@@ -80,7 +80,7 @@ return [
         ],
 
         // 3. KONEKSI DATA WAREHOUSE (DWH) - DIKUNCI KE SINI
-        'dwh' => [
+        'mysql_dwh' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST_DWH', '127.0.0.1'),
             'port' => env('DB_PORT_DWH', '3306'),
