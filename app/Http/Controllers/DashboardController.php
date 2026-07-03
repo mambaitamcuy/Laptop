@@ -3,204 +3,209 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Artisan; 
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class DashboardController extends Controller
 {
     /**
-     * Halaman Dashboard Executive (DWH)
-     * Menghitung Volume Terjual, Total Transaksi, Omzet, Profit, dan Tren Grafik Bulanan
+     * 1. DASHBOARD ANALITIK (DWH) - UTAMA
+     * URL: /dwh/dashboard
      */
     public function index(Request $request)
     {
-        // Ambil filter wilayah dari dropdown request (default 'all')
-        $selectedWilayah = $request->get('wilayah', 'all');
-
-        // 1. QUERY UTAMA UNTUK KARTU INFORMASI (KPI CARD)
-        $query = DB::table('arkadialp_dwh.dwh_fact_penjualan');
-
-        if ($selectedWilayah !== 'all') {
-            $query->join('arkadialp_dwh.dwh_dim_cabang', 'arkadialp_dwh.dwh_fact_penjualan.id_dim_cabang', '=', 'arkadialp_dwh.dwh_dim_cabang.id_dim_cabang')
-                ->where(function($q) use ($selectedWilayah) {
-                    $q->where('arkadialp_dwh.dwh_dim_cabang.kota', $selectedWilayah)
-                        ->orWhere('arkadialp_dwh.dwh_dim_cabang.nama_cabang', 'LIKE', '%' . $selectedWilayah . '%');
-                });
+        $user = Auth::user();
+        if ($user->role !== 'pusat') {
+            abort(403, 'Akses Ditolak!');
         }
 
-        // Kloning query KPI dengan nama tabel eksplisit agar terhindar dari krisis kolisi/ambigu
-        $totalVolume    = (clone $query)->sum('arkadialp_dwh.dwh_fact_penjualan.qty') ?: 0;
-        $totalTransaksi = (clone $query)->count('arkadialp_dwh.dwh_fact_penjualan.id_fact') ?: 0;
-        $totalOmzet     = (clone $query)->sum('arkadialp_dwh.dwh_fact_penjualan.subtotal') ?: 0;
-        $totalProfit    = (clone $query)->sum('arkadialp_dwh.dwh_fact_penjualan.profit') ?: 0;
+        // Ambil input filter wilayah (default 'all' agar sinkron dengan blade)
+        $selectedWilayah = $request->input('wilayah', 'all');
 
-        // 🔥 PERBAIKAN 1: Bungkus variabel ke dalam object $metrics agar terbaca oleh file Blade
-        $metrics = (object) [
-            'total_volume' => $totalVolume,
-            'total_rows'   => $totalTransaksi,
-            'total_gross'  => $totalOmzet,
-            'total_profit' => $totalProfit
-        ];
+        try {
+            // A. HITUNG METRICS UNTUK 4 KOTAK RINGKASAN DI ATAS
+            $metricsQuery = DB::connection('mysql_dwh')->table('arkadialp_dwh.dwh_fact_penjualan')
+                ->join('arkadialp_dwh.dwh_dim_cabang', 'dwh_fact_penjualan.id_dim_cabang', '=', 'dwh_dim_cabang.id_dim_cabang');
 
-        // 2. QUERY UNTUK GRAFIK TREN BULANAN
-        $trendQuery = DB::table('arkadialp_dwh.dwh_fact_penjualan')
-            ->join('arkadialp_dwh.dwh_dim_waktu', 'arkadialp_dwh.dwh_fact_penjualan.id_waktu', '=', 'arkadialp_dwh.dwh_dim_waktu.id_waktu');
+            // Jika memilih cabang spesifik, lakukan filter berdasarkan nama cabang
+            if ($selectedWilayah !== 'all') {
+                $metricsQuery->where('dwh_dim_cabang.nama_cabang', $selectedWilayah);
+            }
 
-        if ($selectedWilayah !== 'all') {
-            $trendQuery->join('arkadialp_dwh.dwh_dim_cabang', 'arkadialp_dwh.dwh_fact_penjualan.id_dim_cabang', '=', 'arkadialp_dwh.dwh_dim_cabang.id_dim_cabang')
-                ->where(function($q) use ($selectedWilayah) {
-                    $q->where('arkadialp_dwh.dwh_dim_cabang.kota', $selectedWilayah)
-                        ->orWhere('arkadialp_dwh.dwh_dim_cabang.nama_cabang', 'LIKE', '%' . $selectedWilayah . '%');
-                });
+            // Agregasi query secara berkala menggunakan SQL murni
+            $metrics = $metricsQuery->selectRaw('
+                IFNULL(SUM(subtotal), 0) as total_gross,
+                IFNULL(SUM(profit), 0) as total_profit,
+                IFNULL(SUM(qty), 0) as total_volume,
+                COUNT(id_penjualan) as total_rows
+            ')->first();
+
+            // B. AMBIL DATA UNTUK GRAFIK TREND (CHART)
+            $queryChart = DB::connection('mysql_dwh')->table('arkadialp_dwh.dwh_analytics_views');
+            if ($selectedWilayah !== 'all') {
+                $queryChart->where('cabang', $selectedWilayah);
+            }
+            $analyticsData = $queryChart->get();
+
+        } catch (\Exception $e) {
+            // Safety Fallback jika skema database DWH kosong atau belum migrasi
+            $metrics = (object) [
+                'total_gross' => 0,
+                'total_profit' => 0,
+                'total_volume' => 0,
+                'total_rows' => 0
+            ];
+            $analyticsData = collect([]);
         }
 
-        $trendData = $trendQuery->select(
-                'arkadialp_dwh.dwh_dim_waktu.tahun',
-                'arkadialp_dwh.dwh_dim_waktu.bulan',
-                'arkadialp_dwh.dwh_dim_waktu.nama_bulan',
-                DB::raw('SUM(arkadialp_dwh.dwh_fact_penjualan.subtotal) as total_omzet'),
-                DB::raw('SUM(arkadialp_dwh.dwh_fact_penjualan.profit) as total_profit')
-            )
-            ->groupBy('arkadialp_dwh.dwh_dim_waktu.tahun', 'arkadialp_dwh.dwh_dim_waktu.bulan', 'arkadialp_dwh.dwh_dim_waktu.nama_bulan')
-            ->orderBy('arkadialp_dwh.dwh_dim_waktu.tahun', 'asc')
-            ->orderBy('arkadialp_dwh.dwh_dim_waktu.bulan', 'asc')
-            ->get();
-
-        $chartLabels = $trendData->map(fn($item) => $item->nama_bulan . ' ' . $item->tahun)->toArray();
-        $chartOmzet  = $trendData->pluck('total_omzet')->toArray();
-        $chartProfit = $trendData->pluck('total_profit')->toArray();
+        // Ekstrak data array untuk di-render oleh Chart.js di Blade
+        $chartLabels = $analyticsData->pluck('cabang')->toArray();
+        $chartValues = $analyticsData->pluck('total_pendapatan')->toArray();
         
-        // Diarahkan ke profit agar grafik garisnya singkron dengan judul "Tren Keuntungan Bersih Murni"
-        $chartValues = $chartProfit; 
-
-        $daftarCabang = DB::table('arkadialp_dwh.dwh_dim_cabang')->select('kota')->distinct()->get();
-        
-        // 🔥 PERBAIKAN 2: Menggunakan format 'd M Y' agar nama bulan tidak rusak diterjemahkan PHP
-        $syncTime = Carbon::now('Asia/Makassar')->format('d M Y | H:i:s') . ' WITA';
+        $syncTime = now()->timezone('Asia/Makassar')->format('d M Y H:i:s') . ' WITA';
 
         return view('pages.dwh.dashboard', compact(
-            'selectedWilayah', 'metrics', 'daftarCabang', 'syncTime', 
-            'chartLabels', 'chartOmzet', 'chartProfit', 'chartValues'
+            'analyticsData', 
+            'metrics', 
+            'syncTime', 
+            'selectedWilayah', 
+            'chartLabels', 
+            'chartValues'
         ));
     }
 
     /**
-     * Halaman Analisis Cabang / Wilayah (DWH)
+     * 2. HALAMAN LAPORAN PROFIT MARGIN (DWH)
+     * URL: /dwh/profit
      */
-    public function cabang()
+    public function profit(Request $request)
     {
-        $analisisCabang = DB::table('arkadialp_dwh.dwh_dim_cabang')
-            ->leftJoin('arkadialp_dwh.dwh_fact_penjualan', 'arkadialp_dwh.dwh_dim_cabang.id_dim_cabang', '=', 'arkadialp_dwh.dwh_fact_penjualan.id_dim_cabang')
-            ->select(
-                'arkadialp_dwh.dwh_dim_cabang.id_dim_cabang',
-                'arkadialp_dwh.dwh_dim_cabang.nama_cabang',
-                'arkadialp_dwh.dwh_dim_cabang.kota',
-                DB::raw('IFNULL(SUM(arkadialp_dwh.dwh_fact_penjualan.qty), 0) as total_qty'),
-                DB::raw('IFNULL(SUM(arkadialp_dwh.dwh_fact_penjualan.subtotal), 0) as total_omzet'),
-                DB::raw('IFNULL(SUM(arkadialp_dwh.dwh_fact_penjualan.profit), 0) as total_profit')
-            )
-            ->groupBy('arkadialp_dwh.dwh_dim_cabang.id_dim_cabang', 'arkadialp_dwh.dwh_dim_cabang.nama_cabang', 'arkadialp_dwh.dwh_dim_cabang.kota')
-            ->paginate(10);
-
-        if (view()->exists('pages.dwh.cabang')) {
-            return view('pages.dwh.cabang', compact('analisisCabang'));
+        $user = Auth::user();
+        if ($user->role !== 'pusat') {
+            abort(403, 'Akses Ditolak!');
         }
 
-        return view('pages.dwh.analisis_wilayah', compact('analisisCabang'));
-    }
+        $selectedWilayah = $request->input('wilayah', 'all');
 
-    /**
-     * Alternatif Cadangan Route Analisis Wilayah
-     */
-    public function analisisWilayah()
-    {
-        return $this->cabang();
-    }
-
-    /**
-     * Halaman Tabel Fakta Profit (DWH)
-     */
-    public function faktaProfit()
-    {
-        $faktaPenjualan = DB::table('arkadialp_dwh.dwh_fact_penjualan')
-            ->join('arkadialp_dwh.dwh_dim_produk', 'arkadialp_dwh.dwh_fact_penjualan.id_dim_produk', '=', 'arkadialp_dwh.dwh_dim_produk.id_dim_produk')
-            ->join('arkadialp_dwh.dwh_dim_cabang', 'arkadialp_dwh.dwh_fact_penjualan.id_dim_cabang', '=', 'arkadialp_dwh.dwh_dim_cabang.id_dim_cabang')
-            ->select(
-                'arkadialp_dwh.dwh_fact_penjualan.*', 
-                'arkadialp_dwh.dwh_dim_produk.nama_produk', 
-                'arkadialp_dwh.dwh_dim_produk.merek', 
-                'arkadialp_dwh.dwh_dim_cabang.nama_cabang'
-            )
-            ->orderBy('id_fact', 'desc')
-            ->paginate(15);
-
-        return view('pages.dwh.fakta_profit', compact('faktaPenjualan'));
-    }
-
-    /**
-     * Halaman Tabel Ringkasan Profit Bulanan
-     */
-    public function profit()
-    {
-        $daftarProfit = DB::table('arkadialp_dwh.dwh_fact_penjualan')
-            ->join('arkadialp_dwh.dwh_dim_waktu', 'arkadialp_dwh.dwh_fact_penjualan.id_waktu', '=', 'arkadialp_dwh.dwh_dim_waktu.id_waktu')
-            ->select(
-                'arkadialp_dwh.dwh_dim_waktu.tahun',
-                'arkadialp_dwh.dwh_dim_waktu.bulan',
-                'arkadialp_dwh.dwh_dim_waktu.nama_bulan',
-                DB::raw('SUM(arkadialp_dwh.dwh_fact_penjualan.qty) as total_unit'),
-                DB::raw('SUM(arkadialp_dwh.dwh_fact_penjualan.subtotal) as total_pendapatan'),
-                DB::raw('SUM(arkadialp_dwh.dwh_fact_penjualan.profit) as total_keuntungan')
-            )
-            ->groupBy('arkadialp_dwh.dwh_dim_waktu.tahun', 'arkadialp_dwh.dwh_dim_waktu.bulan', 'arkadialp_dwh.dwh_dim_waktu.nama_bulan')
-            ->orderBy('arkadialp_dwh.dwh_dim_waktu.tahun', 'desc')
-            ->orderBy('arkadialp_dwh.dwh_dim_waktu.bulan', 'desc')
-            ->paginate(12);
-
-        return view('pages.dwh.profit', compact('daftarProfit'));
-    }
-
-    /**
-     * Halaman Laporan Jalur ETL & Eksekusi Stored Procedure
-     */
-    public function etlReport(Request $request)
-    {
-        if ($request->has('execute')) {
-            try {
-                DB::unprepared('CALL arkadialp_dwh.JalankanPipaETL()');
-                return redirect()->route('dwh.etl-report')->with('success', 'Pipa ETL Berhasil Dieksekusi! Data OLTP sukses ditransformasikan ke DWH.');
-            } catch (\Exception $e) {
-                return redirect()->route('dwh.etl-report')->with('error', 'Gagal mengeksekusi ETL: ' . $e->getMessage());
+        try {
+            $query = DB::connection('mysql_dwh')->table('arkadialp_dwh.dwh_analytics_views');
+            if ($selectedWilayah !== 'all') {
+                $query->where('cabang', $selectedWilayah);
             }
+            $daftarProfit = $query->paginate(10);
+            $chartLabels = $daftarProfit->pluck('cabang')->toArray();
+            $chartValues = $daftarProfit->pluck('profit_margin')->toArray();
+        } catch (\Exception $e) {
+            $daftarProfit = new LengthAwarePaginator([], 0, 10);
+            $chartLabels = [];
+            $chartValues = [];
         }
 
-        $sampleFactData = DB::table('arkadialp_dwh.dwh_fact_penjualan')
-            ->orderBy('id_fact', 'desc')
-            ->limit(5)
-            ->get();
+        $syncTime = now()->timezone('Asia/Makassar')->format('d M Y H:i:s') . ' WITA';
 
-        $syncTime = Carbon::now('Asia/Makassar')->format('d M Y | H:i:s') . ' WITA';
-
-        return view('pages.dwh.etl_report', compact('sampleFactData', 'syncTime'));
+        return view('pages.dwh.profit', compact('daftarProfit', 'syncTime', 'selectedWilayah', 'chartLabels', 'chartValues'));
     }
 
     /**
-     * AJAX REALTIME: Mengeksekusi Stored Procedure JalankanPipaETL via Tombol Dashboard
+     * 3. HALAMAN LAPORAN PER CABANG (DWH)
+     * URL: /dwh/cabang
      */
-    public function runEtl()
+    public function cabang(Request $request)
+    {
+        $user = Auth::user();
+        if ($user->role !== 'pusat') {
+            abort(403, 'Akses Ditolak!');
+        }
+
+        $selectedWilayah = $request->input('wilayah', 'all');
+
+        try {
+            $query = DB::connection('mysql_dwh')->table('arkadialp_dwh.dwh_analytics_views');
+            if ($selectedWilayah !== 'all') {
+                $query->where('cabang', $selectedWilayah);
+            }
+            $analisisCabang = $query->paginate(10);
+            $chartLabels = $analisisCabang->pluck('cabang')->toArray();
+            $chartValues = $analisisCabang->pluck('total_pendapatan')->toArray();
+        } catch (\Exception $e) {
+            $analisisCabang = new LengthAwarePaginator([], 0, 10);
+            $chartLabels = [];
+            $chartValues = [];
+        }
+
+        $syncTime = now()->timezone('Asia/Makassar')->format('d M Y H:i:s') . ' WITA';
+
+        return view('pages.dwh.cabang', compact('analisisCabang', 'syncTime', 'selectedWilayah', 'chartLabels', 'chartValues'));
+    }
+
+    /**
+     * 4. HALAMAN REPORT ETL LOGS
+     * URL: /dwh/etl-report
+     */
+    public function etlReport()
+    {
+        $syncTime = now()->timezone('Asia/Makassar')->format('d M Y H:i:s') . ' WITA';
+        return view('pages.dwh.etl-report', compact('syncTime'));
+    }
+
+    /**
+     * 5. EKSKUSI PIPA ETL VIA WEB (Mengembalikan Respon JSON untuk JavaScript Fetch API)
+     * URL: /dwh/run-etl
+     */
+    public function runEtl(Request $request)
     {
         try {
-            DB::statement('CALL arkadialp_dwh.JalankanPipaETL()');
+            // Memicu jalannya Artisan Command arkadia:etl yang telah kamu buat
+            Artisan::call('arkadia:etl');
 
+            // Mengembalikan respons berformat JSON karena ditembak lewat fungsi fetch() JavaScript
             return response()->json([
                 'success' => true,
-                'message' => 'Semua data terbaru harian toko sukses di-load ke Dashboard DWH & Operasional!'
+                'message' => 'Pipa ETL Berhasil Dijalankan! Data Warehouse berhasil disinkronkan.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengeksekusi ETL: ' . $e->getMessage()
+                'message' => 'Gagal menjalankan ETL: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * 6. DASHBOARD OPERASIONAL (OLTP)
+     * URL: /oltp/dashboard
+     */
+    public function indexOLTP()
+    {
+        $user = Auth::user();
+        $branchMap = [1 => 'Parigi', 2 => 'Palu', 3 => 'Donggala'];
+
+        if ($user->role === 'pusat') {
+            $dataLaptop = DB::connection('mysql')->table('laptops')->get(); 
+            $totalPenjualan = DB::connection('mysql')->table('penjualan')->sum('total_harga');
+
+            return view('pages.oltp.dashboard', compact('dataLaptop', 'totalPenjualan'));
+        }
+
+        if ($user->role === 'cabang' || $user->role === 'karyawan') {
+            $namaCabangUser = $branchMap[$user->id_cabang] ?? 'Unknown';
+
+            $dataLaptop = DB::connection('mysql')
+                            ->table('laptops')
+                            ->where('cabang', $namaCabangUser)
+                            ->get();
+
+            $totalPenjualan = DB::connection('mysql')
+                                ->table('penjualan')
+                                ->join('users', 'penjualan.id_user', '=', 'users.id_user')
+                                ->where('users.id_cabang', $user->id_cabang)
+                                ->sum('penjualan.total_harga');
+
+            return view('pages.oltp.dashboard', compact('dataLaptop', 'totalPenjualan'));
+        }
+
+        abort(403, 'Akses Ditolak.');
     }
 }
