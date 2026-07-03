@@ -26,28 +26,40 @@ class ArkadiaETLPipeline extends Command
             DB::statement("INSERT IGNORE INTO arkadialp_dwh.dwh_dim_cabang (id_dim_cabang, nama_cabang) 
                             VALUES (1, 'Cabang Utama');");
 
-            // Perbaikan: Hanya masukkan id_dim_produk dan nama_produk (harga_jual dihapus karena tidak ada di tabel DWH ini)
+            // Sinkronisasi data master produk langsung dari tabel laptops OLTP
             DB::statement("INSERT IGNORE INTO arkadialp_dwh.dwh_dim_produk (id_dim_produk, nama_produk)
-                            SELECT DISTINCT id_produk, 'Produk Migrasi' FROM arkadialp_oltp.detail_penjualan;");
+                            SELECT id, nama FROM arkadialp_oltp.laptops;");
 
-            // 2. Kosongkan data fakta lama
+            // 2. Kosongkan data fakta lama sebelum diisi yang baru
             $this->comment('Mengosongkan tabel dwh_fact_penjualan...');
             DB::statement('TRUNCATE TABLE arkadialp_dwh.dwh_fact_penjualan;');
 
-            // 3. Tarik data fakta penjualan (16.182 baris)
-            $this->comment('Memindahkan 16.182 data transaksi dari OLTP ke DWH...');
+            // 3. Tarik data fakta penjualan dari tabel relasi baru
+            $this->comment('Memindahkan data transaksi dari OLTP ke DWH via detail_penjualan...');
+            
             DB::statement("
                 INSERT INTO arkadialp_dwh.dwh_fact_penjualan (
                     id_waktu, id_dim_produk, id_dim_cabang, id_penjualan, metode_pembayaran, 
                     qty, harga_jual, harga_modal, subtotal, profit, created_at
                 )
                 SELECT 
-                    1, id_produk, 1, id_penjualan, 'Tunai', 
-                    qty, harga_jual, harga_modal, subtotal, (harga_jual - harga_modal) * qty, NOW() 
-                FROM arkadialp_oltp.detail_penjualan;
+                    1,                                     -- id_waktu (default)
+                    dp.id_produk,                          -- Mengambil id produk dari detail
+                    1,                                     -- id_dim_cabang (default)
+                    dp.id_penjualan, 
+                    p.metode_pembayaran,                   -- Mengambil metode pembayaran dari tabel induk
+                    dp.jumlah,                             -- ⚠️ SESUAIKAN: ganti 'jumlah' menjadi 'qty' jika di tabel barumu namanya qty
+                    l.harga AS harga_jual,                 -- Mengambil harga jual dari master laptops
+                    (l.harga * 0.80) AS harga_modal,       -- Simulasi modal 80% dari harga jual
+                    (l.harga * dp.jumlah) AS subtotal,     -- Kalkulasi subtotal (harga * qty)
+                    (l.harga - (l.harga * 0.80)) * dp.jumlah AS profit, -- Kalkulasi profit untung bersih
+                    NOW() 
+                FROM arkadialp_oltp.detail_penjualan dp
+                JOIN arkadialp_oltp.laptops l ON dp.id_produk = l.id
+                JOIN arkadialp_oltp.penjualan p ON dp.id_penjualan = p.id_penjualan;
             ");
             
-            $this->info('--- ETL Pipeline Berhasil Dijalankan! Data DWH telah sinkron. ---');
+            $this->info('--- ETL Pipeline Berhasil Dijalankan! Data DWH telah sinkron dengan detail_penjualan. ---');
         } catch (\Exception $e) {
             $this->error('Error saat menjalankan ETL: ' . $e->getMessage());
         }
