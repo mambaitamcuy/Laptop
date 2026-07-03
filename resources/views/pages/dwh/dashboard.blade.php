@@ -157,7 +157,7 @@
         text.innerText = "ETL Sedang Berjalan...";
         
         // Menggunakan Fetch API untuk mengirim request POST ke backend Laravel secara realtime
-        fetch("{{ route('dwh.run-etl') }}", {
+        fetch("https://arkadialp.greydecoy.win/dwh/run-etl", {
             method: "POST",
             headers: {
                 "X-CSRF-TOKEN": "{{ csrf_token() }}",
