@@ -23,16 +23,16 @@ class ArkadiaETLPipeline extends Command
             $this->comment('Sinkronisasi data dimensi (Waktu, Cabang, Produk)...');
             
             // Isi Dimensi Waktu dummy (Ditambahkan titik setelah nama DB)
-            DB::statement("INSERT IGNORE INTO {$dwh}dwh_dim_waktu (id_waktu, tanggal, hari, bulan, nama_bulan, kuartal, tahun) 
+            DB::statement("INSERT IGNORE INTO dwh_dim_waktu (id_waktu, tanggal, hari, bulan, nama_bulan, kuartal, tahun) 
                             VALUES (1, '2026-01-01', 'Kamis', 1, 'Januari', 1, 2026);");
             
             // Isi Dimensi Cabang dummy (Ditambahkan titik setelah nama DB)
-            DB::statement("INSERT IGNORE INTO {$dwh}dwh_dim_cabang (id_dim_cabang, nama_cabang) 
+            DB::statement("INSERT IGNORE INTO dwh_dim_cabang (id_dim_cabang, nama_cabang) 
                             VALUES (1, 'Cabang Utama');");
 
             // Sinkronisasi data master produk langsung dari tabel laptops OLTP
-            DB::statement("INSERT IGNORE INTO {$dwh}dwh_dim_produk (id_dim_produk, nama_produk)
-                            SELECT id, nama FROM {$oltp}laptops;");
+            DB::statement("INSERT IGNORE INTO dwh_dim_produk (id_dim_produk, nama_produk)
+                            SELECT id, nama FROM oltp.laptops;");
 
             // 2. Kosongkan data fakta lama sebelum diisi yang baru
             $this->comment('Mengosongkan tabel dwh_fact_penjualan...');
