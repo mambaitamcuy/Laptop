@@ -19,26 +19,26 @@ class ArkadiaETLPipeline extends Command
             $this->comment('Sinkronisasi data dimensi (Waktu, Cabang, Produk)...');
             
             // Isi Dimensi Waktu dummy
-            DB::statement("INSERT IGNORE INTO " . env('DB_DATABASE_DWH') . ".dwh_dim_waktu (id_waktu, tanggal, hari, bulan, nama_bulan, kuartal, tahun) 
+            DB::statement("INSERT IGNORE INTO " . env('DB_DATABASE_DWH') . "dwh_dim_waktu (id_waktu, tanggal, hari, bulan, nama_bulan, kuartal, tahun) 
                             VALUES (1, '2026-01-01', 'Kamis', 1, 'Januari', 1, 2026);");
             
             // Isi Dimensi Cabang dummy
-            DB::statement("INSERT IGNORE INTO " . env('DB_DATABASE_DWH') . ".dwh_dim_cabang (id_dim_cabang, nama_cabang) 
+            DB::statement("INSERT IGNORE INTO " . env('DB_DATABASE_DWH') . "dwh_dim_cabang (id_dim_cabang, nama_cabang) 
                             VALUES (1, 'Cabang Utama');");
 
             // Sinkronisasi data master produk langsung dari tabel laptops OLTP
-            DB::statement("INSERT IGNORE INTO " . env('DB_DATABASE_DWH') . ".dwh_dim_produk (id_dim_produk, nama_produk)
+            DB::statement("INSERT IGNORE INTO " . env('DB_DATABASE_DWH') . "dwh_dim_produk (id_dim_produk, nama_produk)
                             SELECT id, nama FROM " . env('DB_DATABASE_OLTP') . ".laptops;");
 
             // 2. Kosongkan data fakta lama sebelum diisi yang baru
             $this->comment('Mengosongkan tabel dwh_fact_penjualan...');
-            DB::statement('TRUNCATE TABLE ' . env('DB_DATABASE_DWH') . '.dwh_fact_penjualan;');
+            DB::statement('TRUNCATE TABLE ' . env('DB_DATABASE_DWH') . 'dwh_fact_penjualan;');
 
             // 3. Tarik data fakta penjualan dari tabel relasi baru
             $this->comment('Memindahkan data transaksi dari OLTP ke DWH via detail_penjualan...');
             
             DB::statement("
-                INSERT INTO " . env('DB_DATABASE_DWH') . ".dwh_fact_penjualan (
+                INSERT INTO " . env('DB_DATABASE_DWH') . "dwh_fact_penjualan (
                     id_waktu, id_dim_produk, id_dim_cabang, id_penjualan, metode_pembayaran, 
                     qty, harga_jual, harga_modal, subtotal, profit, created_at
                 )
