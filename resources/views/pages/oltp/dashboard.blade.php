@@ -128,28 +128,27 @@
                             <table class="table table-borderless m-0 text-muted" style="font-size: 13.5px;">
                                 <thead style="background: rgba(11, 19, 41, 0.5); color: #f8fafc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
                                     <tr>
-                                        <th class="p-3" style="border-radius: 6px 0 0 6px;">ID Transaksi</th>
+                                        <th class="p-3" style="border-radius: 6px 0 0 6px;">ID Invoice</th>
                                         <th class="p-3">Nama Kasir</th>
                                         <th class="p-3">Metode</th>
                                         <th class="p-3">Total Pembayaran</th>
-                                        <th class="p-3" style="border-radius: 0 6px 6px 0; text-align: right;">Waktu</th>
+                                        <th class="p-3" style="border-radius: 0 6px 6px 0; text-align: right;">Waktu Transaksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    @forelse($recentTransactions as $trx)
                                     <tr style="border-bottom: 1px solid rgba(51, 65, 85, 0.4);">
-                                        <td class="p-3 font-weight-bold text-white">#TRX-98210</td>
-                                        <td class="p-3 text-white">Admin Gudang Alpha</td>
-                                        <td class="p-3"><span class="badge badge-secondary px-2 py-1" style="background: #334155; color: #94a3b8;">QRIS</span></td>
-                                        <td class="p-3 font-weight-bold text-success" style="color: #10b981 !important;">Rp 14.500.000</td>
-                                        <td class="p-3 text-right text-muted" style="font-size: 12px;">10 menit lalu</td>
+                                        <td class="p-3 font-weight-bold text-white">{{ $trx->nomor_invoice }}</td>
+                                        <td class="p-3 text-white">{{ $trx->nama_kasir ?? 'Sistem Pusat' }}</td>
+                                        <td class="p-3"><span class="badge badge-secondary px-2 py-1" style="background: #334155; color: #94a3b8;">{{ $trx->metode_pembayaran }}</span></td>
+                                        <td class="p-3 font-weight-bold text-success" style="color: #10b981 !important;">Rp {{ number_format($trx->total_harga, 0, ',', '.') }}</td>
+                                        <td class="p-3 text-right text-muted" style="font-size: 12px;">{{ $trx->tanggal }}</td>
                                     </tr>
-                                    <tr style="border-bottom: 1px solid rgba(51, 65, 85, 0.4);">
-                                        <td class="p-3 font-weight-bold text-white">#TRX-98209</td>
-                                        <td class="p-3 text-white">Kasir Utama Toko</td>
-                                        <td class="p-3"><span class="badge badge-secondary px-2 py-1" style="background: #334155; color: #94a3b8;">Transfer</span></td>
-                                        <td class="p-3 font-weight-bold text-success" style="color: #10b981 !important;">Rp 8.200.000</td>
-                                        <td class="p-3 text-right text-muted" style="font-size: 12px;">24 menit lalu</td>
+                                    @empty
+                                    <tr>
+                                        <td colspan="5" class="p-3 text-center text-muted">Belum ada riwayat transaksi operasional masuk.</td>
                                     </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
@@ -170,24 +169,21 @@
                         <p class="text-muted mb-3" style="font-size: 11.5px;">Tipe laptop di bawah ini wajib segera dipesan ulang:</p>
                         
                         <div class="d-flex flex-column" style="gap: 10px;">
+                            @forelse($laptopsKritis as $laptop)
                             <div class="d-flex justify-content-between align-items-center p-3" style="background: rgba(11, 19, 41, 0.4); border-radius: 8px; border: 1px solid #334155;">
                                 <div>
-                                    <span class="d-block text-white font-weight-bold" style="font-size: 13.5px;">Arkadia Phantom X</span>
-                                    <small class="text-muted">Intel Core i7 / 16GB</small>
+                                    <span class="d-block text-white font-weight-bold" style="font-size: 13.5px;">{{ $laptop->nama }}</span>
+                                    <small class="text-muted">{{ $laptop->brand }} / Cabang {{ $laptop->cabang }}</small>
                                 </div>
                                 <span class="badge px-2 py-1.5 font-weight-bold" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 12px;">
-                                    2 Unit
+                                    {{ $laptop->stok }} Unit
                                 </span>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center p-3" style="background: rgba(11, 19, 41, 0.4); border-radius: 8px; border: 1px solid #334155;">
-                                <div>
-                                    <span class="d-block text-white font-weight-bold" style="font-size: 13.5px;">Arkadia SlimBook 14</span>
-                                    <small class="text-muted">AMD Ryzen 5 / 8GB</small>
-                                </div>
-                                <span class="badge px-2 py-1.5 font-weight-bold" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); font-size: 12px;">
-                                    4 Unit
-                                </span>
+                            @empty
+                            <div class="p-3 text-center text-muted rounded bg-slate-900" style="font-size: 12px; border: 1px dashed #334155;">
+                                <i class="fas fa-check-circle text-success mr-1"></i> Semua stok aman (di atas 5 unit).
                             </div>
+                            @endforelse
                         </div>
                     </div>
                 </div>
@@ -218,17 +214,17 @@ document.addEventListener("DOMContentLoaded", function () {
     // 1. KONFIGURASI LINE CHART REALTIME (JAM-JAMAN KASIR)
     const ctxOltp = document.getElementById('realtimeOltpChart').getContext('2d');
     const lineGradient = ctxOltp.createLinearGradient(0, 0, 0, 230);
-    lineGradient.addColorStop(0, 'rgba(59, 130, 246, 0.35)'); // Warna gradasi biru tema asli Anda
+    lineGradient.addColorStop(0, 'rgba(59, 130, 246, 0.35)'); 
     lineGradient.addColorStop(1, 'rgba(59, 130, 246, 0.00)');
 
     new Chart(ctxOltp, {
         type: 'line',
         data: {
-            labels: {!! json_encode($hourlyLabels ?? []) !!},
+            labels: {!! json_encode($hourlyLabels) !!},
             datasets: [{
                 label: 'Transaksi Masuk',
-                data: {!! json_encode($hourlyValues ?? []) !!},
-                borderColor: '#3b82f6', // Menyesuaikan warna utama teks halaman Anda
+                data: {!! json_encode($hourlyValues) !!},
+                borderColor: '#3b82f6', 
                 borderWidth: 2.5,
                 pointBackgroundColor: '#60a5fa',
                 pointHoverRadius: 5,
@@ -260,12 +256,12 @@ document.addEventListener("DOMContentLoaded", function () {
     new Chart(ctxDonut, {
         type: 'doughnut',
         data: {
-            labels: {!! json_encode($paymentLabels ?? []) !!},
+            labels: {!! json_encode($paymentLabels) !!},
             datasets: [{
-                data: {!! json_encode($paymentValues ?? []) !!},
-                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'], // Sinkron dengan warna card (Biru, Emerald, Amber)
+                data: {!! json_encode($paymentValues) !!},
+                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'], 
                 borderWidth: 2,
-                borderColor: '#1c2541', // Menyesuaikan warna dasar kartu Anda
+                borderColor: '#1c2541', 
                 hoverOffset: 4
             }]
         },

@@ -12,11 +12,28 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
+            $table->id('id_user'); 
+            
             $table->string('name');
             $table->string('email')->unique();
+            
+            // Kolom Google Auth
+            $table->string('google_id')->nullable();
+            $table->text('avatar')->nullable(); 
+            
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('login_method')->default('MANUAL');
+            
+            // Kolom Sistem Multi-Dashboard
+            $table->string('role')->nullable();
+            $table->unsignedBigInteger('id_role')->nullable();
+            $table->unsignedBigInteger('id_cabang')->nullable();
+            
+            // 🌟 PASTIKAN DUA BARIS INI ADA DI FILE YANG SUDAH DI-SAVE:
+            $table->string('two_factor_code')->nullable();
+            $table->timestamp('two_factor_expires_at')->nullable();
+            
             $table->rememberToken();
             $table->timestamps();
         });
