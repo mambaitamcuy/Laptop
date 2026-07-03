@@ -168,7 +168,7 @@
         //     }
         // })
 
-        fetch("https://arkadialp.greydecoy.win/dwh/run-etl", {
+        fetch("https://arkadialp.greydecoy.win/dwh/run-etl') }}", {
             method: "POST",
             headers: {
                 "X-CSRF-TOKEN": "{{ csrf_token() }}",
