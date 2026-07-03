@@ -85,8 +85,8 @@ class OltpDashboardController extends Controller
                             ->paginate(10);
 
         $daftarLaptop = DB::table('laptops')
-                          ->orderBy('nama_laptop', 'asc')
-                          ->get();
+                        ->orderBy('nama_laptop', 'asc')
+                        ->get();
 
         return view('pages.oltp.transaksi', compact('daftarTransaksi', 'daftarLaptop'));
     }
