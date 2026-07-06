@@ -85,7 +85,6 @@ return [
         'mysql_dwh' => [
             'driver' => 'mysql',
             'url' => env('DATABASE_DWH_URL'),
-            'host' => env('DB_HOST_DWH', '127.0.0.1'),
             'port' => env('DB_PORT_DWH', '3306'),
             'database' => env('DB_DATABASE_DWH'),
             'username' => env('DB_USERNAME_DWH', 'root'),
@@ -102,23 +101,6 @@ return [
             'driver' => 'mysql',
             'url' => env('DATABASE_DWH_URL'),
             'host' => env('DB_HOST_DWH', '127.0.0.1'),
-            'port' => env('DB_PORT_DWH', '3306'),
-            'database' => env('DB_DATABASE_DWH'),
-            'username' => env('DB_USERNAME_DWH', 'root'),
-            'password' => env('DB_PASSWORD_DWH', ''),
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'strict' => true,
-            'engine' => null,
-        ],
-
-        // 4. ALIAS BARU: Menyamakan Nama dengan Kebutuhan File Migrasi Analitik Anda
-        'mysql_dwh' => [
-            'driver' => 'mysql',
-            'host' => env('DB_HOST_DWH', '127.0.0.1'),
-            'url' => env('DATABASE_DWH_URL'),
             'port' => env('DB_PORT_DWH', '3306'),
             'database' => env('DB_DATABASE_DWH'),
             'username' => env('DB_USERNAME_DWH', 'root'),
