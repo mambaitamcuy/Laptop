@@ -9,6 +9,8 @@ class CabangSeeder extends Seeder
 {
     public function run(): void
     {
+        $databaseName = env('DB_DWH_DATABASE');
+
         $datasetCabang = [
             ['id_cabang' => 1, 'nama_cabang' => 'Palu', 'kota' => 'Palu', 'alamat' => 'Jl. Sudirman No. 12'],
             ['id_cabang' => 2, 'nama_cabang' => 'Donggala', 'kota' => 'Donggala', 'alamat' => 'Jl. Pelabuhan No. 45'],
@@ -16,13 +18,12 @@ class CabangSeeder extends Seeder
         ];
 
         foreach ($datasetCabang as $data) {
-            DB::table('arkadialp_dwh.dwh_dim_cabang')->updateOrInsert(
-                ['id_cabang' => $data['id_cabang']], 
+            DB::table($databaseName . '.dwh_dim_cabang')->updateOrInsert(
+                ['id_cabang' => $data['id_cabang']],
                 [
                     'nama_cabang' => $data['nama_cabang'],
                     'kota'        => $data['kota'],
                     'alamat'      => $data['alamat'],
-                    // Kolom timestamps dihapus dari sini agar tidak memicu error
                 ]
             );
         }
