@@ -71,6 +71,12 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [OltpDashboardController::class, 'index'])->name('dashboard');
         Route::get('/stok', [OltpDashboardController::class, 'stok'])->name('stok');
         Route::post('/stok/store', [OltpDashboardController::class, 'storeStok'])->name('stok.store');
+        
+        // ─── TAMBAHAN RUTE EDIT & HAPUS STOK (SOLUSI ERROR RAILWAY) ───
+        Route::put('/stok/{id}', [OltpDashboardController::class, 'update'])->name('stok.update');
+        Route::delete('/stok/{id}', [OltpDashboardController::class, 'destroy'])->name('stok.destroy');
+        // ──────────────────────────────────────────────────────────────
+        
         Route::get('/transaksi', [OltpDashboardController::class, 'transaksi'])->name('transaksi');
         Route::post('/transaksi/store', [OltpDashboardController::class, 'storeTransaksi'])->name('transaksi.store');
         
