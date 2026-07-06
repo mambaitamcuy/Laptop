@@ -26,8 +26,9 @@ class DashboardController extends Controller
 
         try {
             // A. HITUNG METRICS UNTUK 4 KOTAK RINGKASAN DI ATAS
-            $metricsQuery = DB::connection('mysql_dwh')->table('arkadialp_dwh.dwh_fact_penjualan')
-                ->join('arkadialp_dwh.dwh_dim_cabang', 'dwh_fact_penjualan.id_dim_cabang', '=', 'dwh_dim_cabang.id_dim_cabang');
+            // PERBAIKAN: Menghapus prefix 'arkadialp_dwh.' agar fleksibel di Lokal & Railway
+            $metricsQuery = DB::connection('mysql_dwh')->table('dwh_fact_penjualan')
+                ->join('dwh_dim_cabang', 'dwh_fact_penjualan.id_dim_cabang', '=', 'dwh_dim_cabang.id_dim_cabang');
 
             // Jika memilih cabang spesifik, lakukan filter berdasarkan nama cabang
             if ($selectedWilayah !== 'all') {
@@ -43,7 +44,8 @@ class DashboardController extends Controller
             ')->first();
 
             // B. AMBIL DATA UNTUK GRAFIK TREND (CHART)
-            $queryChart = DB::connection('mysql_dwh')->table('arkadialp_dwh.dwh_analytics_views');
+            // PERBAIKAN: Menghapus prefix 'arkadialp_dwh.'
+            $queryChart = DB::connection('mysql_dwh')->table('dwh_analytics_views');
             if ($selectedWilayah !== 'all') {
                 $queryChart->where('cabang', $selectedWilayah);
             }
@@ -90,7 +92,8 @@ class DashboardController extends Controller
         $selectedWilayah = $request->input('wilayah', 'all');
 
         try {
-            $query = DB::connection('mysql_dwh')->table('arkadialp_dwh.dwh_analytics_views');
+            // PERBAIKAN: Menghapus prefix 'arkadialp_dwh.'
+            $query = DB::connection('mysql_dwh')->table('dwh_analytics_views');
             if ($selectedWilayah !== 'all') {
                 $query->where('cabang', $selectedWilayah);
             }
@@ -122,7 +125,8 @@ class DashboardController extends Controller
         $selectedWilayah = $request->input('wilayah', 'all');
 
         try {
-            $query = DB::connection('mysql_dwh')->table('arkadialp_dwh.dwh_analytics_views');
+            // PERBAIKAN: Menghapus prefix 'arkadialp_dwh.'
+            $query = DB::connection('mysql_dwh')->table('dwh_analytics_views');
             if ($selectedWilayah !== 'all') {
                 $query->where('cabang', $selectedWilayah);
             }
@@ -157,10 +161,9 @@ class DashboardController extends Controller
     public function runEtl(Request $request)
     {
         try {
-            // Memicu jalannya Artisan Command arkadia:etl yang telah kamu buat
+            // Memicu jalannya Artisan Command arkadia:etl yang telah dibuat
             Artisan::call('arkadia:etl');
 
-            // Mengembalikan respons berformat JSON karena ditembak lewat fungsi fetch() JavaScript
             return response()->json([
                 'success' => true,
                 'message' => 'Pipa ETL Berhasil Dijalankan! Data Warehouse berhasil disinkronkan.'
