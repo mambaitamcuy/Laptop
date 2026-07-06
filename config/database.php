@@ -50,6 +50,7 @@ return [
         // 1. KONEKSI UTAMA OPERASIONAL (OLTP)
         'mysql_oltp' => [
             'driver' => 'mysql',
+            'url' => env('DATABASE_URL'),
             'host' => env('DB_HOST_OLTP', '127.0.0.1'),
             'port' => env('DB_PORT_OLTP', '3306'),
             'database' => env('DB_DATABASE_OLTP', 'arkadialp_oltp'),
@@ -82,6 +83,7 @@ return [
         // 3. KONEKSI DATA WAREHOUSE (DWH) - DIKUNCI KE SINI
         'mysql_dwh' => [
             'driver' => 'mysql',
+            'url' => env('DATABASE_DWH_URL'),
             'host' => env('DB_HOST_DWH', '127.0.0.1'),
             'port' => env('DB_PORT_DWH', '3306'),
             'database' => env('DB_DATABASE_DWH', 'arkadialp_dwh'),
@@ -97,6 +99,7 @@ return [
 
         'dwh' => [
             'driver' => 'mysql',
+            'url' => env('DATABASE_DWH_URL'),
             'host' => env('DB_HOST_DWH', '127.0.0.1'),
             'port' => env('DB_PORT_DWH', '3306'),
             'database' => env('DB_DATABASE_DWH', 'arkadialp_dwh'),
@@ -114,6 +117,7 @@ return [
         'mysql_dwh' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST_DWH', '127.0.0.1'),
+            'url' => env('DATABASE_DWH_URL'),
             'port' => env('DB_PORT_DWH', '3306'),
             'database' => env('DB_DATABASE_DWH', 'arkadialp_dwh'),
             'username' => env('DB_USERNAME_DWH', 'root'),
