@@ -7,49 +7,48 @@ use Illuminate\Support\Facades\DB;
 
 class ArkadiaETLPipeline extends Command
 {
+    /**
+     * Nama dan signature dari console command.
+     * Anda bisa menjalankannya via terminal: php artisan arkadia:etl
+     */
     protected $signature = 'arkadia:etl';
-    protected $description = 'Menjalankan ETL Pipeline Arkadia (Sinkronisasi OLTP ke DWH)';
 
+    /**
+     * Deskripsi dari console command.
+     */
+    protected $description = 'Menjalankan ETL Pipeline Arkadia (Sinkronisasi OLTP ke DWH via Stored Procedure)';
+
+    /**
+     * Eksekusi console command.
+     */
     public function handle()
     {
-        $this->info('--- Memulai ETL Pipeline Arkadia ---');
+        $this->info('==================================================');
+        $this->info('       MEMULAI ETL PIPELINE ARKADIA (SP)          ');
+        $this->info('==================================================');
         
+        $this->comment('Memanggil Stored Procedure JalankanPipaETL pada database DWH...');
+
         try {
-            // 1. Amankan data dimensi terlebih dahulu secara bertahap
-            $this->comment('Sinkronisasi data dimensi (Waktu, Cabang, Produk)...');
-            
-            // Isi Dimensi Waktu dummy
-            DB::statement("INSERT IGNORE INTO arkadialp_dwh.dwh_dim_waktu (id_waktu, tanggal, hari, bulan, nama_bulan, kuartal, tahun) 
-                            VALUES (1, '2026-01-01', 'Kamis', 1, 'Januari', 1, 2026);");
-            
-            // Isi Dimensi Cabang dummy
-            DB::statement("INSERT IGNORE INTO arkadialp_dwh.dwh_dim_cabang (id_dim_cabang, nama_cabang) 
-                            VALUES (1, 'Cabang Utama');");
+            // Memicu stored procedure yang ada di database arkadialp_dwh
+            // Menggunakan unprepared statement agar eksekusi prosedur berjalan lancar tanpa return binding
+            DB::connection('dwh')->unprepared("CALL JalankanPipaETL()");
 
-            // Perbaikan: Hanya masukkan id_dim_produk dan nama_produk (harga_jual dihapus karena tidak ada di tabel DWH ini)
-            DB::statement("INSERT IGNORE INTO arkadialp_dwh.dwh_dim_produk (id_dim_produk, nama_produk)
-                            SELECT DISTINCT id_produk, 'Produk Migrasi' FROM arkadialp_oltp.detail_penjualan;");
-
-            // 2. Kosongkan data fakta lama
-            $this->comment('Mengosongkan tabel dwh_fact_penjualan...');
-            DB::statement('TRUNCATE TABLE arkadialp_dwh.dwh_fact_penjualan;');
-
-            // 3. Tarik data fakta penjualan (16.182 baris)
-            $this->comment('Memindahkan 16.182 data transaksi dari OLTP ke DWH...');
-            DB::statement("
-                INSERT INTO arkadialp_dwh.dwh_fact_penjualan (
-                    id_waktu, id_dim_produk, id_dim_cabang, id_penjualan, metode_pembayaran, 
-                    qty, harga_jual, harga_modal, subtotal, profit, created_at
-                )
-                SELECT 
-                    1, id_produk, 1, id_penjualan, 'Tunai', 
-                    qty, harga_jual, harga_modal, subtotal, (harga_jual - harga_modal) * qty, NOW() 
-                FROM arkadialp_oltp.detail_penjualan;
-            ");
+            $this->info('--------------------------------------------------');
+            $this->info(' SAKSES! ETL Pipeline Berhasil Dijalankan.        ');
+            $this->info(' Data fakta dan dimensi di DWH sudah sinkron.     ');
+            $this->info('==================================================');
             
-            $this->info('--- ETL Pipeline Berhasil Dijalankan! Data DWH telah sinkron. ---');
         } catch (\Exception $e) {
-            $this->error('Error saat menjalankan ETL: ' . $e->getMessage());
+            $this->error('==================================================');
+            $this->error(' GAGAL! Terjadi error saat menjalankan ETL:       ');
+            $this->error(' ' . $e->getMessage());
+            $this->error('==================================================');
+            
+            $this->comment('Tips Perbaikan:');
+            $this->comment('1. Pastikan koneksi bernama "dwh" sudah terdaftar di config/database.php');
+            $this->comment('2. Pastikan settingan DB_DATABASE_DWH di .env sudah mengarah ke database DWH Anda.');
+            $this->comment('3. Pastikan user database Anda memiliki hak akses untuk memanggil Procedure.');
         }
     }
 }

@@ -10,13 +10,13 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
-    // Trik Bypass Kuliah: Pakai email sebagai primary key agar session login mengikat sempurna
-    protected $primaryKey = 'email'; 
-    public $incrementing = false;
-    protected $keyType = 'string';
+    // Menyelaraskan primary key dengan database
+    protected $primaryKey = 'id_user'; 
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     /**
-     * Properti yang boleh diisi secara massal
+     * Properti yang boleh diisi secara massal (Mass Assignment)
      */
     protected $fillable = [
         'name',
@@ -25,6 +25,9 @@ class User extends Authenticatable
         'google_id',
         'avatar',
         'login_method',
+        'role',
+        'id_role',
+        'id_cabang',
     ];
 
     /**
@@ -40,6 +43,6 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'password' => 'hashed', // Meng-hash password otomatis jika diinput lewat seeder/eloquent
     ];
 }
