@@ -68,6 +68,7 @@ return [
         'oltp' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST_OLTP', '127.0.0.1'),
+            'url' => env('DATABASE_URL'),
             'port' => env('DB_PORT_OLTP', '3306'),
             'database' => env('DB_DATABASE_OLTP', 'arkadialp_oltp'),
             'username' => env('DB_USERNAME_OLTP', 'root'),
