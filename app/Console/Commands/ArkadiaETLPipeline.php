@@ -18,6 +18,7 @@ class ArkadiaETLPipeline extends Command
             $this->info('--- Pipa ETL Berhasil Dijalankan! ---');
         } catch (\Exception $e) {
             $this->error('Error ETL: ' . $e->getMessage());
+            throw $e; // Melempar ulang exception agar bisa ditangani di controller jika perlu
         }
     }
 }
