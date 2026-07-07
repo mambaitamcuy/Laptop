@@ -28,6 +28,8 @@ class User extends Authenticatable
         'role',
         'id_role',
         'id_cabang',
+        'two_factor_code',
+        'two_factor_expires_at',
     ];
 
     /**
