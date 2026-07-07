@@ -16,18 +16,12 @@ class ArkadiaETLPipeline extends Command
         $this->info('--- Memulai Pipa ETL Multi-Host ArkadiaLP ---');
 
         try {
-            // =========================================================
-            // LAKUKAN PROSES DI DATABASE DWH (MATIKAN PROTEKSI & KOSONGKAN)
-            // =========================================================
-            $this->comment('1. Membersihkan tabel fakta di Gudang Data (DWH)...');
+            // 1. Kosongkan tabel di DWH
             DB::connection('mysql_dwh')->statement('SET FOREIGN_KEY_CHECKS = 0;');
             DB::connection('mysql_dwh')->table('dwh_fact_penjualan')->truncate();
             DB::connection('mysql_dwh')->table('dwh_dim_waktu')->truncate();
 
-            // =========================================================
-            // EXTRACT & LOAD: SINKRONISASI DIMENSI PRODUK & CABANG
-            // =========================================================
-            $this->comment('2. Menyinkronkan Dimensi Produk dari Host OLTP...');
+            // 2. Tarik Dimensi Produk dari OLTP ke DWH
             $oltpLaptops = DB::connection('mysql')->table('laptops')->select('id', 'nama')->get();
             foreach ($oltpLaptops as $laptop) {
                 DB::connection('mysql_dwh')->table('dwh_dim_produk')->updateOrInsert(
@@ -36,7 +30,7 @@ class ArkadiaETLPipeline extends Command
                 );
             }
 
-            $this->comment('3. Memastikan Dimensi Cabang Terisi...');
+            // 3. Masukkan Dimensi Cabang ke DWH
             $cabangs = [
                 ['id_dim_cabang' => 1, 'nama_cabang' => 'Parigi'],
                 ['id_dim_cabang' => 2, 'nama_cabang' => 'Palu'],
@@ -49,10 +43,7 @@ class ArkadiaETLPipeline extends Command
                 );
             }
 
-            // =========================================================
-            // EXTRACT & TRANSFORM: SINKRONISASI DIMENSI WAKTU
-            // =========================================================
-            $this->comment('4. Mentransformasi dan Mengisi Dimensi Waktu...');
+            // 4. Tarik dan Proses Dimensi Waktu
             $oltpDates = DB::connection('mysql')->table('penjualan')
                 ->whereNotNull('tanggal')
                 ->distinct()
@@ -61,13 +52,13 @@ class ArkadiaETLPipeline extends Command
             $dateToIdMap = [];
             $idWaktu = 1;
 
-            $daysIndo = [
-                'Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa',
-                'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'
-            ];
             $monthsIndo = [
                 1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
                 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+            ];
+            $daysIndo = [
+                'Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa',
+                'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'
             ];
 
             foreach ($oltpDates as $dateStr) {
@@ -83,18 +74,11 @@ class ArkadiaETLPipeline extends Command
                     'kuartal' => ceil($carbonDate->month / 3),
                     'tahun' => $carbonDate->year,
                 ]);
-
-                // Simpan map tanggal ke ID untuk mempermudah pengisian tabel fakta nanti
                 $dateToIdMap[$formattedDate] = $idWaktu;
                 $idWaktu++;
             }
 
-            // =========================================================
-            // EXTRACT, TRANSFORM, LOAD (ETL): TABEL FAKTA PENJUALAN
-            // =========================================================
-            $this->comment('5. Menarik data transaksi dari Host OLTP dan memproses data fakta...');
-            
-            // Ambil data murni dari server OLTP tanpa menyenggol server DWH
+            // 5. Tarik Tabel Fakta dari OLTP (Perhatikan kita menggunakan LEFT JOIN dan menarik dp.qty)
             $oltpDetails = DB::connection('mysql')->table('detail_penjualan as dp')
                 ->leftJoin('laptops as l', 'dp.id_produk', '=', 'l.id')
                 ->leftJoin('penjualan as p', 'dp.id_penjualan', '=', 'p.id_penjualan')
@@ -104,7 +88,7 @@ class ArkadiaETLPipeline extends Command
                     'u.id_cabang',
                     'dp.id_penjualan',
                     'p.metode_pembayaran',
-                    'dp.qty', // Menggunakan kolom dp.qty sesuai database asli kamu
+                    'dp.qty', // Pastikan kolom di database aslimu benar bernama qty (atau ganti jadi jumlah jika beda)
                     'l.harga',
                     'p.tanggal'
                 ])->get();
@@ -114,8 +98,8 @@ class ArkadiaETLPipeline extends Command
                 $hargaJual = $row->harga ?? 0;
                 $qty = $row->qty ?? 0;
                 $subtotal = $hargaJual * $qty;
-                $hargaModal = $hargaJual * 0.80; // Margin Profit Modal 80%
-                $profit = ($hargaJual - $hargaModal) * $qty; // Profit Bersih 20%
+                $hargaModal = $hargaJual * 0.80;
+                $profit = ($hargaJual - $hargaModal) * $qty;
 
                 $dateKey = $row->tanggal ? Carbon::parse($row->tanggal)->format('Y-m-d') : null;
                 $matchedIdWaktu = $dateToIdMap[$dateKey] ?? 1;
@@ -135,20 +119,21 @@ class ArkadiaETLPipeline extends Command
                 ];
             }
 
-            // Kirim data secara massal (Bulk Insert) ke server DWH dengan chunking ramah memori
+            // 6. Masukkan data ke DWH
             if (!empty($bulkFacts)) {
-                $this->comment('6. Memasukkan data bersih ke dalam Host DWH...');
                 foreach (array_chunk($bulkFacts, 200) as $chunk) {
                     DB::connection('mysql_dwh')->table('dwh_fact_penjualan')->insert($chunk);
                 }
             }
 
             DB::connection('mysql_dwh')->statement('SET FOREIGN_KEY_CHECKS = 1;');
-            $this->info('--- ETL BERHASIL! Data Lintas Host Sinkron 100% Sempurna ---');
+            
+            return 0; // Sukses
 
         } catch (\Exception $e) {
             DB::connection('mysql_dwh')->statement('SET FOREIGN_KEY_CHECKS = 1;');
-            $this->error('Proses ETL Gagal: ' . $e->getMessage());
+            $this->error('Gagal: ' . $e->getMessage());
+            throw $e; // Lempar eror agar ditangkap oleh pop-up web
         }
     }
 }
